@@ -1,11 +1,11 @@
 #include "MainComponent.h"
 
 //==============================================================================
-class GuiAppApplication final : public juce::JUCEApplication
+class LightDAWApplication final : public juce::JUCEApplication
 {
 public:
     //==============================================================================
-    GuiAppApplication() {}
+    LightDAWApplication() {}
 
     const juce::String getApplicationName() override       { return JUCE_APPLICATION_NAME_STRING; }
     const juce::String getApplicationVersion() override    { return JUCE_APPLICATION_VERSION_STRING; }
@@ -13,15 +13,11 @@ public:
 
     //==============================================================================
     void initialise (const juce::String& commandLine) override {
-        // This method is where you should put your application's initialisation code..
         juce::ignoreUnused (commandLine);
-
         mainWindow.reset (new MainWindow (getApplicationName()));
     }
 
     void shutdown() override {
-        // Add your application's shutdown code here..
-
         mainWindow = nullptr;
     }
 
@@ -68,4 +64,4 @@ private:
 };
 
 //==============================================================================
-START_JUCE_APPLICATION (GuiAppApplication)
+START_JUCE_APPLICATION (LightDAWApplication)

@@ -2,4 +2,6 @@
 set -e
 
 PRESET="${1-debug}"
-open "build/$PRESET/LightDAW.app"
+
+cmake --build "build/$PRESET"
+./build/$PRESET/LightDAW.app/Contents/MacOS/LightDAW
