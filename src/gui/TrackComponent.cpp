@@ -12,7 +12,7 @@ TrackComponent::TrackComponent(AudioEngine& audio_engine_, TrackId track_id_)
     :   audio_engine(audio_engine_),
         track_id(track_id_),
         id_label(juce::String(), std::to_string(track_id_)),
-        audio_file_label("Audio File Name", ""){
+        audio_file_label("Audio File Name", "") {
 
     addAndMakeVisible(id_label);
 
@@ -52,7 +52,7 @@ TrackComponent::TrackComponent(AudioEngine& audio_engine_, TrackId track_id_)
                 [&](const juce::FileChooser& file_chooser) {
             const auto file = file_chooser.getResult();
             if (file.existsAsFile()) {
-                audio_engine.track_import_file(track_id, file);
+                audio_engine.track_import_file(track_id, file, 0);
                 audio_file_label.setText(file.getFileName(), juce::dontSendNotification);
             }
         });
@@ -79,6 +79,7 @@ void TrackComponent::resized() {
     audio_file_import_button.setBounds(area.removeFromLeft(75));
     area.removeFromLeft(5);
     audio_file_label.setBounds(area.removeFromLeft(150));
+    // TODO: Clip labels: create update array of labels elsewhere, using notification from Track when clips array changes
 }
 
 void TrackComponent::set_on_delete(std::function<void()> fn) {

@@ -1,4 +1,5 @@
 #include "audio/AudioEngine.h"
+#include "juce_audio_formats/juce_audio_formats.h"
 
 constexpr char default_device[] = "MacBook Pro Microphone";
 constexpr ChannelId MAX_INPUT_CHANNELS = 8;
@@ -6,10 +7,12 @@ constexpr ChannelId MAX_OUTPUT_CHANNELS = 8;
 
 // PUBLIC FUNCTIONS
 
-AudioEngine::AudioEngine(): io_callback(*this) {
+AudioEngine::AudioEngine(): io_callback(*this), stream_manager(transport, format_manager, tracks) {
     device_manager.initialise(MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, nullptr, true, default_device);
     device_manager.addAudioCallback(&io_callback);
     device_manager.addChangeListener(this);
+
+    format_manager.registerBasicFormats();
 }
 
 AudioEngine::~AudioEngine() {
@@ -23,7 +26,7 @@ void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source) {
 }
 
 TrackId AudioEngine::add_track() {
-    tracks.emplace(next_track_id, std::make_unique<Track>(next_track_id));
+    tracks.emplace(next_track_id, std::make_unique<Track>(transport, next_track_id));
     track_update_channel(next_track_id);
     return next_track_id++;
 }
@@ -54,7 +57,14 @@ void AudioEngine::track_set_mute(TrackId track_id, bool new_muted) { tracks[trac
 bool AudioEngine::track_is_monitoring(TrackId track_id) { return tracks[track_id]->is_monitoring(); }
 void AudioEngine::track_set_monitoring(TrackId track_id, bool new_monitoring) { tracks[track_id]->set_monitoring(new_monitoring); }
 
-void AudioEngine::track_import_file(TrackId track_id, const juce::File& file) { DBG("load " + file.getFileName() + " to track " + std::to_string(track_id)); }
+void AudioEngine::track_import_file(TrackId track_id, const juce::File& file, int pos) {
+    if (!file.existsAsFile()) { DBG("File doesn't exist"); return; }
+    juce::AudioFormatReader* reader = format_manager.createReaderFor(file);
+    if (!reader) { DBG("Couldn't open file"); return; }
+
+    tracks[track_id]->import_file(file, pos, 0, reader->lengthInSamples);
+    delete reader;
+}
 
 // PRIVATE FUNCTIONS
 

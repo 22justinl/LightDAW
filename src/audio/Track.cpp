@@ -3,8 +3,14 @@
 
 // PUBLIC FUNCTIONS
 
-Track::Track(TrackId id_): id(id_) { juce::ignoreUnused(id); }
-Track::Track(TrackId id_, const juce::String& name_): id(id_), name(name_) { }
+Track::Track(Transport& transport_, TrackId id_): transport(transport_), id(id_), audio_source(transport_, clips) { juce::ignoreUnused(id); }
+Track::Track(Transport& transport_, TrackId id_, const juce::String& name_): transport(transport_), id(id_), name(name_), audio_source(transport_, clips) { }
+
+Track::~Track() {
+    for (auto& c : clips) {
+        c.stream = nullptr;
+    }
+}
 
 juce::String Track::get_name() const { return name; }
 void Track::set_name(const juce::String& new_name) { name = new_name; }
@@ -30,7 +36,16 @@ void Track::set_channel(ChannelId new_channel) { channel = new_channel; }
 ChannelId Track::get_buffer_channel() const { return buffer_channel; }
 void Track::set_buffer_channel(ChannelId new_channel) { buffer_channel = new_channel; }
 
-void Track::import_file(const juce::File& file) {
-    // TODO: import file
-    juce::ignoreUnused(file);
+TrackAudioSource& Track::get_audio_source() {
+    return audio_source;
+}
+
+void Track::import_file(const juce::File& file, juce::int64 pos, juce::int64 start, juce::int64 end) {
+    size_t i;
+    for (i = 0; i < clips.size(); ++i) {
+        if (pos <= clips[i].start) {
+            break;
+        }
+    }
+    clips.insert(clips.begin()+static_cast<int>(i), {file, pos, start, end});
 }

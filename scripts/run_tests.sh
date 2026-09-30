@@ -2,4 +2,6 @@
 set -e
 
 PRESET="${1-debug}"
-./build/$PRESET/tests
+
+cmake --build "build/$PRESET"
+./build/$PRESET/unit_tests

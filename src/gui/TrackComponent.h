@@ -26,4 +26,5 @@ private:
     juce::TextButton monitoring_button;
     juce::TextButton audio_file_import_button;
     juce::Label audio_file_label;
+    // juce::OwnedArray<TrackComponent> tracks;
 };
