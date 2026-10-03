@@ -1,5 +1,6 @@
 #include "audio/AudioEngine.h"
-#include "juce_audio_formats/juce_audio_formats.h"
+
+#include <juce_audio_formats/juce_audio_formats.h>
 
 constexpr char default_device[] = "MacBook Pro Microphone";
 constexpr ChannelId MAX_INPUT_CHANNELS = 8;
@@ -7,15 +8,19 @@ constexpr ChannelId MAX_OUTPUT_CHANNELS = 8;
 
 // PUBLIC FUNCTIONS
 
-AudioEngine::AudioEngine(): io_callback(*this), stream_manager(transport, format_manager, tracks) {
+AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(transport, format_manager, tracks), playback_source(transport) {
     device_manager.initialise(MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, nullptr, true, default_device);
     device_manager.addAudioCallback(&io_callback);
     device_manager.addChangeListener(this);
 
     format_manager.registerBasicFormats();
+    // format_manager.registerFormat(new juce::MP3AudioFormat(), false);
 }
 
 AudioEngine::~AudioEngine() {
+    if (is_playing()) {
+        stop();
+    }
     device_manager.removeChangeListener(this);
 }
 
@@ -27,7 +32,9 @@ void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source) {
 
 TrackId AudioEngine::add_track() {
     tracks.emplace(next_track_id, std::make_unique<Track>(transport, next_track_id));
+    track_ids.push_back(next_track_id);
     track_update_channel(next_track_id);
+    playback_source.addInputSource(&tracks[next_track_id]->get_audio_source());
     return next_track_id++;
 }
 
@@ -35,10 +42,21 @@ void AudioEngine::erase_track(TrackId track_id) {
     if (tracks.find(track_id) == tracks.end()) {
         throw std::runtime_error("Track " + std::to_string(track_id) + " does not exist");
     }
+    for (size_t i = 0; i < track_ids.size(); ++i) {
+        if (track_ids[i] == track_id) {
+            track_ids.erase(track_ids.begin() + static_cast<int>(i));
+            break;
+        }
+    }
+    playback_source.removeInputSource(&tracks[track_id]->get_audio_source());
     tracks.erase(track_id);
 }
 
-const std::unordered_map<TrackId, std::unique_ptr<Track>>& AudioEngine::get_tracks() const {
+std::vector<TrackId>& AudioEngine::get_track_ids() {
+    return track_ids;
+}
+
+std::unordered_map<TrackId, std::unique_ptr<Track>>& AudioEngine::get_tracks() {
     return tracks;
 }
 
@@ -57,13 +75,51 @@ void AudioEngine::track_set_mute(TrackId track_id, bool new_muted) { tracks[trac
 bool AudioEngine::track_is_monitoring(TrackId track_id) { return tracks[track_id]->is_monitoring(); }
 void AudioEngine::track_set_monitoring(TrackId track_id, bool new_monitoring) { tracks[track_id]->set_monitoring(new_monitoring); }
 
-void AudioEngine::track_import_file(TrackId track_id, const juce::File& file, int pos) {
+void AudioEngine::track_import_file(TrackId track_id, const juce::File& file, juce::int64 pos) {
     if (!file.existsAsFile()) { DBG("File doesn't exist"); return; }
     juce::AudioFormatReader* reader = format_manager.createReaderFor(file);
     if (!reader) { DBG("Couldn't open file"); return; }
 
     tracks[track_id]->import_file(file, pos, 0, reader->lengthInSamples);
     delete reader;
+}
+
+void AudioEngine::play() {
+    playback_source.prepareToPlay(device_setup.bufferSize, device_setup.sampleRate);
+    transport.set_position(0);
+    transport.play();
+    stream_manager.startThread();
+}
+
+void AudioEngine::stop() {
+    stream_manager.reset_play_ready();
+    transport.stop();
+    stream_manager.notify_cv();
+    stream_manager.stopThread(2000);
+}
+
+void AudioEngine::notify_cv() {
+    stream_manager.notify_cv();
+}
+
+bool AudioEngine::is_playing() const {
+    return transport.is_playing();
+}
+
+bool AudioEngine::is_playback_ready() const {
+    return stream_manager.is_play_ready();
+}
+
+SamplePosition AudioEngine::get_position() const {
+    return transport.get_position();
+}
+
+void AudioEngine::advance_playhead(SamplePosition change) {
+    transport.set_position(transport.get_position() + change);
+}
+
+PlaybackSource& AudioEngine::get_playback_source() {
+    return playback_source;
 }
 
 // PRIVATE FUNCTIONS
@@ -101,7 +157,7 @@ void AudioEngine::handleDeviceChange() {
         right_output_channel = -1;
     } else {
         left_output_channel = device_setup.outputChannels.findNextSetBit(0);
-        right_output_channel = device_setup.outputChannels.findNextSetBit(left_output_channel+1);
+        right_output_channel = device_setup.outputChannels.findNextSetBit(static_cast<int>(left_output_channel+1));
     }
     left_output_buffer_channel = output_phys_to_buf_id[left_output_channel];
     right_output_buffer_channel = output_phys_to_buf_id[right_output_channel];

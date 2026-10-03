@@ -30,8 +30,12 @@ target_sources(LightDAW
         src/audio/Transport.cpp
 
         src/gui/AudioSettingsComponent.cpp
-        src/gui/TrackComponent.cpp
+        src/gui/TrackHeaderComponent.cpp
         src/gui/TrackListComponent.cpp
+        src/gui/FileImportComponent.cpp
+        src/gui/TimelineComponent.cpp
+        src/gui/ClipComponent.cpp
+        src/gui/TransportComponent.cpp
 )
 target_link_libraries(LightDAW
     PRIVATE

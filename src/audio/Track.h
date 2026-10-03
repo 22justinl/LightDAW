@@ -3,23 +3,35 @@
 #include "audio/AudioFileStream.h"
 #include "audio/TrackAudioSource.h"
 #include "audio/Transport.h"
+#include "Types.h"
 
 #include <juce_core/juce_core.h>
+#include <juce_events/juce_events.h>
 #include <juce_audio_formats/juce_audio_formats.h>
 
-using TrackId = std::uint64_t;
-using ChannelId = int;
-
 struct Clip {
-    Clip(const juce::File& file_, juce::int64 pos_, juce::int64 start_, juce::int64 end_)
-        : file(file_), pos(pos_), start(start_), end(end_), end_pos(pos+end-start), stream(nullptr) {}
-
+    Clip(ClipId id_, const juce::File& file_, SamplePosition pos_, SamplePosition start_, SamplePosition end_)
+        : id(id_), file(file_), pos(pos_), start(start_), end(end_), end_pos(pos+end-start), stream(nullptr) {}
+    ClipId id;
     juce::File file;
-    juce::int64 pos;
-    juce::int64 start;
-    juce::int64 end;
-    juce::int64 end_pos;
+    SamplePosition pos;
+    SamplePosition start;
+    SamplePosition end;
+    SamplePosition end_pos;
     std::unique_ptr<AudioFileStream> stream;
+};
+
+enum class ClipChangeType {
+    Add,
+    Delete,
+    Edit,
+    None
+};
+
+struct ClipChange {
+    ClipChange(ClipId id_, ClipChangeType type_): id(id_), type(type_) { }
+    ClipId id;
+    ClipChangeType type;
 };
 
 struct TrackPlaybackState {
@@ -28,14 +40,14 @@ struct TrackPlaybackState {
     size_t prefetch_clip = 0;   // next clip to prefetch
 };
 
-class Track {
+class Track: public juce::ChangeBroadcaster {
 public:
     Track(Transport& transport_, TrackId id_);
     Track(Transport& transport_, TrackId id_, const juce::String& name);
 
     ~Track();
 
-    juce::String get_name() const;
+    const juce::String& get_name() const;
     void set_name(const juce::String& new_name);
 
     float get_gain() const;
@@ -61,7 +73,13 @@ public:
 
     TrackAudioSource& get_audio_source();
 
-    void import_file(const juce::File& file, juce::int64 pos, juce::int64 start, juce::int64 end);
+    SamplePosition get_max_sample_position() const;
+
+    const Clip* get_clip_by_id(ClipId clip_id) const;
+
+    std::queue<ClipChange> clip_change_queue;
+
+    void import_file(const juce::File& file, SamplePosition pos, SamplePosition start, SamplePosition end);
 
     std::vector<Clip> clips; // sorted by start position
 
@@ -71,6 +89,7 @@ private:
 
     const TrackId id;
     juce::String name = "New Track";
+    ClipId next_clip_id = 0;
 
     float gain_db = 0;
     bool muted = false;

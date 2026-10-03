@@ -35,8 +35,9 @@ void DAWIOCallback::audioDeviceIOCallbackWithContext(
     }
     if (left_channel == -1) { return; }
 
-    for (const auto& p : audio_engine.get_tracks()) {
-        Track& track = *p.second;
+    auto& tracks = audio_engine.get_tracks();
+    for (TrackId track_id : audio_engine.get_track_ids()) {
+        Track& track = *tracks[track_id];
         if (track.is_muted()) { continue; }
         if (track.is_monitoring()) {
             juce::FloatVectorOperations::add(outputChannelData[left_channel], inputChannelData[track.get_buffer_channel()], numSamples);
@@ -47,6 +48,18 @@ void DAWIOCallback::audioDeviceIOCallbackWithContext(
 
         // TODO: add track audio
     }
+    if (audio_engine.is_playback_ready()) {
+        juce::AudioBuffer<float> buffer(
+            outputChannelData,
+            numOutputChannels,
+            numSamples);
+
+        juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
+        audio_engine.get_playback_source().getNextAudioBlock(info);
+        audio_engine.advance_playhead(numSamples);
+        audio_engine.notify_cv();
+    }
+
     // if (input_muted) {
     //     for (int channel = 0; channel < numOutputChannels; ++channel) {
     //         juce::FloatVectorOperations::clear(outputChannelData[channel], numSamples);

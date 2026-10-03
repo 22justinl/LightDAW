@@ -6,17 +6,16 @@
 
 TrackAudioSource::TrackAudioSource(Transport& transport_, std::vector<Clip>& clips_): transport(transport_), clips(clips_) {}
 
-void TrackAudioSource::setNextReadPosition(juce::int64 newPosition) {
+void TrackAudioSource::setNextReadPosition(SamplePosition newPosition) {
     juce::ignoreUnused(newPosition);
 }
 
-juce::int64 TrackAudioSource::getNextReadPosition() const {
+SamplePosition TrackAudioSource::getNextReadPosition() const {
     return transport.get_position();
 }
 
-juce::int64 TrackAudioSource::getTotalLength() const {
-    // return transport.getTotalLength();
-    return INT_MAX;
+SamplePosition TrackAudioSource::getTotalLength() const {
+    return transport.get_end_pos();
 }
 
 bool TrackAudioSource::isLooping() const {
@@ -31,6 +30,7 @@ void TrackAudioSource::setLooping(bool shouldLoop) {
 
 void TrackAudioSource::prepareToPlay(int samplePerBlockExpected, double sampleRate) {
     juce::ignoreUnused(samplePerBlockExpected, sampleRate);
+    current_clip = 0;
 }
 
 void TrackAudioSource::releaseResources() {
@@ -38,5 +38,25 @@ void TrackAudioSource::releaseResources() {
 }
 
 void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
-    juce::ignoreUnused(bufferToFill);
+    bufferToFill.clearActiveBufferRegion();
+    if (current_clip >= clips.size()) {
+        return;
+    }
+    // int num_channels = bufferToFill.buffer->getNumChannels();
+    int n = bufferToFill.numSamples;
+    float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
+    while (current_clip < clips.size() && n > 0 && transport.is_playing()) {
+        if (transport.get_position() < clips[current_clip].pos) {
+            break;
+        }
+        if (!clips[current_clip].stream) {
+            ++current_clip;
+            continue;
+        }
+        int read = clips[current_clip].stream->read(buffers, n);
+        clips[current_clip].stream->check_and_queue_refill();
+        buffers[0] += read;
+        buffers[1] += read;
+        n -= read;
+    }
 }

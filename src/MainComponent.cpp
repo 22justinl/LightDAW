@@ -1,27 +1,38 @@
 #include "MainComponent.h"
 
+#include "gui/AudioSettingsComponent.h"
+#include "gui/FileImportComponent.h"
 #include "gui/TrackListComponent.h"
+#include "gui/TransportComponent.h"
 
-MainComponent::MainComponent()
-    :   track_list(audio_engine),
-        audio_settings(audio_engine) {
+MainComponent::MainComponent(): transport_component(audio_engine), track_list(audio_engine) {
     setSize (1200, 800);
 
-    settings_button.setButtonText("Audio Settings");
-    settings_button.onClick = [&](){ audio_settings.setVisible(!audio_settings.isVisible()); };
-    addAndMakeVisible(settings_button);
+    settings_button.onClick = [&](){ if (!audio_settings_window_ptr) {new AudioSettingsWindow(audio_engine, audio_settings_window_ptr);} };
 
     add_track_button.onClick = [&](){ track_list.add_track(); };
-    addAndMakeVisible(add_track_button);
+
+    import_file_button.onClick = [&](){ if (!import_file_window_ptr) {new FileImportWindow(audio_engine, import_file_window_ptr);} };
 
     track_list.add_track();
-    track_list_viewport.setViewedComponent(&track_list);
+    track_list_viewport.setViewedComponent(&track_list, false);
     track_list_viewport.setScrollBarsShown(false, false, true, false);
-    addAndMakeVisible(track_list_viewport);
 
-    addChildComponent(audio_settings);
+    addAndMakeVisible(settings_button);
+    addAndMakeVisible(add_track_button);
+    addAndMakeVisible(import_file_button);
+    addAndMakeVisible(track_list_viewport);
+    addAndMakeVisible(transport_component);
 }
 
+MainComponent::~MainComponent() {
+    if (audio_settings_window_ptr) {
+        delete audio_settings_window_ptr;
+    }
+    if (import_file_window_ptr) {
+        delete import_file_window_ptr;
+    }
+}
 
 void MainComponent::paint (juce::Graphics& g) {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
@@ -30,11 +41,11 @@ void MainComponent::paint (juce::Graphics& g) {
 void MainComponent::resized() {
     auto area = getLocalBounds().reduced(10);
 
-    audio_settings.setCentrePosition(area.getCentreX(), area.getCentreY());
-
     auto top_area = area.removeFromTop(75);
     settings_button.setBounds(top_area.removeFromLeft(75));
     add_track_button.setBounds(top_area.removeFromLeft(75));
+    import_file_button.setBounds(top_area.removeFromLeft(75));
+    transport_component.setBounds(top_area);
 
     area.removeFromTop(10);
 

@@ -20,7 +20,7 @@ TEST_CASE("AudioFileStream single thread functionality") {
 
     tracks.emplace(0, std::make_unique<Track>(transport, 0));
     StreamManager stream_manager(transport, format_manager, tracks);
-    Clip clip(file, 0, 0, reader->lengthInSamples);
+    Clip clip(0, file, 0, 0, reader->lengthInSamples);
 
     AudioFileStream stream(2, 4096, format_manager, clip, stream_manager);
 

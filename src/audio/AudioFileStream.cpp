@@ -94,6 +94,9 @@ void AudioFileStream::check_and_queue_refill() {
 
 int AudioFileStream::read(float* const* data, int num_samples) {
     num_samples = buffer.read(data, num_samples);
+    if (num_samples > 0) {
+        DBG("read " + std::to_string(num_samples) + ", stream has " + std::to_string(buffer.getNumReadySamples()) + " samples");
+    }
     return num_samples;
 }
 

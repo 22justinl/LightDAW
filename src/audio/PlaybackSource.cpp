@@ -1,20 +1,18 @@
 #include "audio/PlaybackSource.h"
 #include "juce_core/juce_core.h"
 
-PlaybackSource::PlaybackSource(AudioEngine& audio_engine_): audio_engine(audio_engine_) {
-    juce::ignoreUnused(audio_engine);
-}
+PlaybackSource::PlaybackSource(Transport& transport_): transport(transport_) { }
 
-void PlaybackSource::setNextReadPosition(juce::int64 newPosition)  {
+void PlaybackSource::setNextReadPosition(SamplePosition newPosition)  {
     read_position = std::min(newPosition, total_length);
 }
 
-juce::int64 PlaybackSource::getNextReadPosition() const  {
-    return read_position;
+SamplePosition PlaybackSource::getNextReadPosition() const  {
+    return transport.get_position();
 }
 
-juce::int64 PlaybackSource::getTotalLength() const  {
-    return total_length;
+SamplePosition PlaybackSource::getTotalLength() const  {
+    return transport.get_end_pos();
 }
 
 bool PlaybackSource::isLooping() const  {
@@ -26,14 +24,22 @@ void PlaybackSource::setLooping(bool shouldLoop)  {
     throw std::runtime_error("Not implemented");
 }
 
-void PlaybackSource::prepareToPlay(int samplePerBlockExpected, double sampleRate)  {
-    juce::ignoreUnused(samplePerBlockExpected, sampleRate);
+void PlaybackSource::prepareToPlay(int samplePerBlockExpected, double sampleRate) {
+    mixer_source.prepareToPlay(samplePerBlockExpected, sampleRate);
 }
 
 void PlaybackSource::releaseResources()  {
-
+    mixer_source.releaseResources();
 }
 
 void PlaybackSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)  {
-    juce::ignoreUnused(bufferToFill);
+    mixer_source.getNextAudioBlock(bufferToFill);
+}
+
+void PlaybackSource::addInputSource(AudioSource *newInput) {
+    mixer_source.addInputSource(newInput, false);
+}
+
+void PlaybackSource::removeInputSource(AudioSource *input) {
+    mixer_source.removeInputSource(input);
 }

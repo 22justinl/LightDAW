@@ -9,9 +9,9 @@ struct Clip;
 class TrackAudioSource: public juce::PositionableAudioSource {
 public:
     TrackAudioSource(Transport& transport_, std::vector<Clip>& clips_);
-    void setNextReadPosition(juce::int64 newPosition) override;
-    juce::int64 getNextReadPosition() const override;
-    juce::int64 getTotalLength() const override;
+    void setNextReadPosition(SamplePosition newPosition) override;
+    SamplePosition getNextReadPosition() const override;
+    SamplePosition getTotalLength() const override;
     bool isLooping() const override;
     void setLooping(bool shouldLoop) override;
 
@@ -21,4 +21,5 @@ public:
 private:
     Transport& transport;
     std::vector<Clip>& clips;
+    size_t current_clip = 0;
 };

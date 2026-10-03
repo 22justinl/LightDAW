@@ -2,13 +2,15 @@
 
 #include "audio/AudioEngine.h"
 
-#include "gui/TrackComponent.h"
+#include "gui/TimelineComponent.h"
+#include "gui/TrackHeaderComponent.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
 class TrackListComponent: public juce::Component {
 public:
     TrackListComponent(AudioEngine& audio_engine_);
+    ~TrackListComponent() override;
     void paint(juce::Graphics& g) override;
 
     void resized() override;
@@ -18,11 +20,16 @@ public:
 
     int calculate_height() const;
 private:
+    void draw_tracks();
+
     AudioEngine& audio_engine;
 
-    juce::OwnedArray<TrackComponent> tracks;
-    std::unordered_map<TrackId, TrackComponent*> id_to_track_ptr;
+    juce::Viewport timeline_viewport;
+
+    std::unordered_map<TrackId, std::unique_ptr<TrackHeaderComponent>> track_components;
 
     int track_height = 50;
-    int spacing = 5;
+    int spacing = 0;
+
+    TimelineComponent timeline;
 };

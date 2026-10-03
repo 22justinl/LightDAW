@@ -6,9 +6,9 @@
 
 #include <memory>
 
-class TrackComponent: public juce::Component {
+class TrackHeaderComponent: public juce::Component {
 public:
-    TrackComponent(AudioEngine& audio_engine_, TrackId track_id_);
+    TrackHeaderComponent(AudioEngine& audio_engine_, TrackId track_id_);
     void paint(juce::Graphics& g) override;
     void resized() override;
 
@@ -21,10 +21,8 @@ private:
     std::function<void()> on_delete;
 
     juce::Label id_label;
-    juce::TextButton delete_button;
-    juce::TextButton mute_button;
-    juce::TextButton monitoring_button;
-    juce::TextButton audio_file_import_button;
-    juce::Label audio_file_label;
-    // juce::OwnedArray<TrackComponent> tracks;
+    juce::TextButton delete_button {"Delete"};
+    juce::TextButton mute_button {"Mute"};
+    juce::TextButton monitoring_button {"Monitor"};
+    // juce::OwnedArray<juce::Label> clip_labels;
 };

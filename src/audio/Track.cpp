@@ -3,7 +3,7 @@
 
 // PUBLIC FUNCTIONS
 
-Track::Track(Transport& transport_, TrackId id_): transport(transport_), id(id_), audio_source(transport_, clips) { juce::ignoreUnused(id); }
+Track::Track(Transport& transport_, TrackId id_): transport(transport_), id(id_), name("Track " + std::to_string(id_)), audio_source(transport_, clips) { }
 Track::Track(Transport& transport_, TrackId id_, const juce::String& name_): transport(transport_), id(id_), name(name_), audio_source(transport_, clips) { }
 
 Track::~Track() {
@@ -12,7 +12,7 @@ Track::~Track() {
     }
 }
 
-juce::String Track::get_name() const { return name; }
+const juce::String& Track::get_name() const { return name; }
 void Track::set_name(const juce::String& new_name) { name = new_name; }
 
 float Track::get_gain() const { return gain_db; }
@@ -40,12 +40,28 @@ TrackAudioSource& Track::get_audio_source() {
     return audio_source;
 }
 
-void Track::import_file(const juce::File& file, juce::int64 pos, juce::int64 start, juce::int64 end) {
+SamplePosition Track::get_max_sample_position() const {
+    if (clips.empty()) { return 0; }
+    return clips.back().end_pos;
+}
+
+const Clip* Track::get_clip_by_id(ClipId clip_id) const {
+    for (size_t i = 0; i < clips.size(); ++i) {
+        if (clips[i].id == clip_id) {
+            return &clips[i];
+        }
+    }
+    return nullptr;
+}
+
+void Track::import_file(const juce::File& file, SamplePosition pos, SamplePosition start, SamplePosition end) {
     size_t i;
     for (i = 0; i < clips.size(); ++i) {
         if (pos <= clips[i].start) {
             break;
         }
     }
-    clips.insert(clips.begin()+static_cast<int>(i), {file, pos, start, end});
+    clips.insert(clips.begin()+static_cast<int>(i), {next_clip_id, file, pos, start, end});
+    clip_change_queue.emplace(next_clip_id++, ClipChangeType::Add);
+    sendChangeMessage();
 }

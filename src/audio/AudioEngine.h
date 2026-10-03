@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio/DAWIOCallback.h"
+#include "audio/PlaybackSource.h"
 #include "audio/StreamManager.h"
 #include "audio/Track.h"
 
@@ -19,7 +20,8 @@ public:
     TrackId add_track();
     void erase_track(TrackId track_id);
 
-    const std::unordered_map<TrackId, std::unique_ptr<Track>>& get_tracks() const;
+    std::vector<TrackId>& get_track_ids();
+    std::unordered_map<TrackId, std::unique_ptr<Track>>& get_tracks();
 
     std::pair<ChannelId, ChannelId> output_channels() const;
 
@@ -33,7 +35,16 @@ public:
     bool track_is_monitoring(TrackId track_id);
     void track_set_monitoring(TrackId track_id, bool new_monitoring);
 
-    void track_import_file(TrackId track_id, const juce::File& file, int position);
+    void track_import_file(TrackId track_id, const juce::File& file, SamplePosition position);
+
+    void play();
+    void stop();
+    void notify_cv();
+    bool is_playing() const;
+    bool is_playback_ready() const;
+    SamplePosition get_position() const;
+    void advance_playhead(SamplePosition change);
+    PlaybackSource& get_playback_source();
 
     juce::AudioDeviceManager device_manager;
 private:
@@ -44,12 +55,14 @@ private:
 
     TrackId next_track_id = 0;
     std::unordered_map<TrackId, std::unique_ptr<Track>> tracks;
+    std::vector<TrackId> track_ids;
 
     DAWIOCallback io_callback;
     juce::AudioDeviceManager::AudioDeviceSetup device_setup;
     juce::AudioFormatManager format_manager;
-    StreamManager stream_manager;
     Transport transport;
+    StreamManager stream_manager;
+    PlaybackSource playback_source;
 
     std::unordered_map<ChannelId, ChannelId> input_phys_to_buf_id;
     std::unordered_map<ChannelId, ChannelId> output_phys_to_buf_id;

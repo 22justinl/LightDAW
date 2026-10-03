@@ -5,6 +5,14 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 
+class AudioSettingsWindow: public juce::DocumentWindow {
+public:
+    AudioSettingsWindow(AudioEngine& audio_engine_, AudioSettingsWindow*& window_ptr_);
+    void closeButtonPressed() override;
+private:
+    AudioSettingsWindow*& window_ptr;
+};
+
 class AudioSettingsComponent final: public juce::Component {
 public:
     AudioSettingsComponent(AudioEngine& audio_engine_);

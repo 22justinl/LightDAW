@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Types.h"
 #include "audio/AudioRingBuffer.h"
 
 #include <juce_core/juce_core.h>
@@ -39,7 +40,7 @@ private:
     int refill_threshold;
     int num_channels;
 
-    int stream_position = 0;
+    SamplePosition stream_position = 0;
     bool initial_fill_queued = false;
 
     float** temp_buffer;
