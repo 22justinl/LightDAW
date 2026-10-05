@@ -49,7 +49,7 @@ void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
         if (transport.get_position() < clips[current_clip].pos) {
             break;
         }
-        if (!clips[current_clip].stream) {
+        if (!clips[current_clip].stream || clips[current_clip].stream->is_done()) {
             ++current_clip;
             continue;
         }

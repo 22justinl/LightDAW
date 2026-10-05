@@ -48,16 +48,18 @@ void DAWIOCallback::audioDeviceIOCallbackWithContext(
 
         // TODO: add track audio
     }
-    if (audio_engine.is_playback_ready()) {
-        juce::AudioBuffer<float> buffer(
-            outputChannelData,
-            numOutputChannels,
-            numSamples);
+    if (audio_engine.is_playing()) {
+        if (audio_engine.is_playback_ready()) {
+            juce::AudioBuffer<float> buffer(
+                    outputChannelData,
+                    numOutputChannels,
+                    numSamples);
 
-        juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
-        audio_engine.get_playback_source().getNextAudioBlock(info);
+            juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
+            audio_engine.get_playback_source().getNextAudioBlock(info);
+        }
         audio_engine.advance_playhead(numSamples);
-        audio_engine.notify_cv();
+        audio_engine.check_threshold_and_notify();
     }
 
     // if (input_muted) {

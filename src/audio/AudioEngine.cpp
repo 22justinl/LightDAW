@@ -118,6 +118,10 @@ void AudioEngine::advance_playhead(SamplePosition change) {
     transport.set_position(transport.get_position() + change);
 }
 
+void AudioEngine::check_threshold_and_notify() {
+    stream_manager.check_threshold_and_notify();
+}
+
 PlaybackSource& AudioEngine::get_playback_source() {
     return playback_source;
 }

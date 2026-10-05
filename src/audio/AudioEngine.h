@@ -44,6 +44,7 @@ public:
     bool is_playback_ready() const;
     SamplePosition get_position() const;
     void advance_playhead(SamplePosition change);
+    void check_threshold_and_notify();
     PlaybackSource& get_playback_source();
 
     juce::AudioDeviceManager device_manager;

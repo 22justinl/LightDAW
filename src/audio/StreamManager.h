@@ -22,6 +22,7 @@ public:
     bool is_play_ready() const;
     void reset_play_ready();
 
+    void check_threshold_and_notify();
     void notify_cv();
 private:
     void prepare_playback();
@@ -38,7 +39,7 @@ private:
     int prefetch_window_size = 10 * 4096;
     int stream_blocks = 5;
     int stream_buffer_size = 5 * 4096;
-    SamplePosition playback_end = INT_MAX;
+    SamplePosition playback_end = LLONG_MAX;
 
     Transport& transport;
     juce::AudioFormatManager& format_manager;
@@ -49,7 +50,6 @@ private:
     size_t refill_overflow_count = 0;
     std::queue<Clip*> deferred_destruction_queue;
 
-    std::atomic_bool refill_requested{false};
     std::atomic_bool play_ready{false};
     std::atomic<SamplePosition> r_position{0}; // readahead position
     std::atomic<SamplePosition> seek_position{-1};

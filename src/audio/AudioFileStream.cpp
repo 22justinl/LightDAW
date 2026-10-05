@@ -1,6 +1,7 @@
 #include "audio/AudioFileStream.h"
 #include "audio/Track.h"
 #include "audio/StreamManager.h"
+#include <algorithm>
 
 // Called by stream manager thread
 
@@ -59,10 +60,11 @@ void AudioFileStream::fill() {
     // TODO: change ring buffer interface to allow directly writing to buffer
     // also deal case where track and file have different number of channels
     if (is_done()) { return; }
-
-    int num_samples = buffer.getFreeSpace();
+    int num_samples = static_cast<int>(std::min(static_cast<SamplePosition>(buffer.getFreeSpace()), clip.end - stream_position));
+    if (num_samples == 0) { return; }
     if (!reader->read(temp_buffer, num_channels, stream_position, num_samples)) {
         DBG("Stream read failed: " + file.getFileName());
+        stream_position = clip.end;
         return;
     }
     buffer.write(temp_buffer, num_samples);
@@ -83,7 +85,7 @@ bool AudioFileStream::check_refill() const {
 }
 
 void AudioFileStream::check_and_queue_refill() {
-    if (refill_requested.load() || buffer.getNumReadySamples() >= refill_threshold) {
+    if ((refill_requested.load() || buffer.getNumReadySamples() >= refill_threshold) && !is_done()) {
         return;
     }
     refill_requested.store(true);
@@ -94,9 +96,9 @@ void AudioFileStream::check_and_queue_refill() {
 
 int AudioFileStream::read(float* const* data, int num_samples) {
     num_samples = buffer.read(data, num_samples);
-    if (num_samples > 0) {
-        DBG("read " + std::to_string(num_samples) + ", stream has " + std::to_string(buffer.getNumReadySamples()) + " samples");
-    }
+    // if (num_samples > 0) {
+    //     DBG("read " + std::to_string(num_samples) + ", stream has " + std::to_string(buffer.getNumReadySamples()) + " samples");
+    // }
     return num_samples;
 }
 

@@ -16,36 +16,25 @@ void StreamManager::run() {
     play();
 }
 void StreamManager::play() {
-    DBG("start playing");
     prepare_playback();
-    DBG("prepare_playback done");
     create_prefetch_streams();
-    DBG("create_prefetch_streams done");
     initial_fill();
-    DBG("initial_fill done");
     play_ready.store(true);
-    DBG("play ready");
-    DBG("\n\n");
     while (transport.is_playing()) {
-        // DBG("wait");
         std::unique_lock<std::mutex> lock(m);
         cv.wait(lock, [&](){ 
-                // DBG("Check condition");
-                // DBG(std::to_string(r_position) + " < " + std::to_string(transport.get_position()) + " + " + std::to_string(prefetch_window_size));
-                return !transport.is_playing() || !refill_queue.empty() || r_position < transport.get_position() + prefetch_window_size || !deferred_destruction_queue.empty() || transport.get_position() >= transport.get_end_pos(); });
-        // DBG("wait done");
+            return !transport.is_playing()                                          // playback stopped
+                || !refill_queue.empty()                                            // need to queue refill jobs
+                || r_position < transport.get_position() + prefetch_window_size     // need to check for new clips
+                || !deferred_destruction_queue.empty()                              // need to destroy streams that were in use before
+                || transport.get_position() >= transport.get_end_pos();             // reached end of playback
+        });
         if (!transport.is_playing()) { break; }
-        refill_requested.store(false);
         create_prefetch_streams();
-        // DBG("create_pretch_streams done");
         remove_finished_streams();
-        // DBG("remove_finished_streams done");
         remove_deferred_streams();
-        // DBG("remove_deferred_streams done");
         refill();
-        // DBG("refill done");
         initial_fill();
-        // DBG("initial_fill done");
     }
 }
 bool StreamManager::try_queue_refill(Clip* clip) {
@@ -65,6 +54,11 @@ void StreamManager::reset_play_ready() {
     play_ready.store(false);
 }
 
+void StreamManager::check_threshold_and_notify() {
+    if (r_position < transport.get_position() + static_cast<SamplePosition>(0.7 * static_cast<double>(prefetch_window_size))) {
+        cv.notify_one();
+    }
+}
 
 void StreamManager::notify_cv() {
     cv.notify_one();
@@ -92,9 +86,9 @@ void StreamManager::prepare_playback() {
     }
 }
 
+// TODO: Change how r_position is advanced to reduce unnecessary cv wakeups
 void StreamManager::initial_fill() {
     SamplePosition curr_position = transport.get_position();
-
     while (r_position < std::min(curr_position + prefetch_window_size, playback_end)) {
         // interupt fill if seeking
         if (seek_position.load() != -1) {
@@ -106,7 +100,6 @@ void StreamManager::initial_fill() {
             size_t& next_clip = track.playback_state.next_clip;
             size_t& prefetch_clip = track.playback_state.prefetch_clip;
             while (prefetch_clip < next_clip && clips[prefetch_clip].pos < r_position) {
-                if (!clips[prefetch_clip].stream) { /*DBG("prefetch_clip doesn't have stream");*/ return; }
                 if (!clips[prefetch_clip].stream->is_initial_fill_queued()) {
                     // queue fill
                     clips[prefetch_clip].stream->fill_in_progress.store(true);
@@ -148,7 +141,6 @@ void StreamManager::create_prefetch_streams() {
         // create streams for clips that just entered window
         while (next_clip < clips.size() && clips[next_clip].pos < prefetch_right) {
             if (!clips[next_clip].stream) {
-                DBG("Create stream");
                 clips[next_clip].stream = std::make_unique<AudioFileStream>(2, stream_buffer_size, format_manager, clips[next_clip], *this);
             }
             ++next_clip;
@@ -167,7 +159,6 @@ void StreamManager::remove_finished_streams() {
 
         while (curr_clip < last_clip && clips[curr_clip].end_pos < curr_pos) {
             if (clips[curr_clip].stream) {
-                DBG("Remove stream");
                 if (clips[curr_clip].stream->fill_in_progress.load()) {
                     deferred_destruction_queue.push(&clips[curr_clip]);
                 } else {
