@@ -1,9 +1,10 @@
 #pragma once
 
 #include "audio/DAWIOCallback.h"
-#include "audio/PlaybackSource.h"
+#include "audio/TrackMixerSource.h"
 #include "audio/StreamManager.h"
 #include "audio/Track.h"
+#include "audio/AudioInputView.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_events/juce_events.h>
@@ -25,6 +26,8 @@ public:
 
     std::pair<ChannelId, ChannelId> output_channels() const;
 
+    void set_input_view_ptr(const float* const* input_channel_data);
+
     // Track interface
     float track_get_gain(TrackId track_id);
     void track_set_gain(TrackId track_id, float new_gain_db);
@@ -45,11 +48,11 @@ public:
     SamplePosition get_position() const;
     void advance_playhead(SamplePosition change);
     void check_threshold_and_notify();
-    PlaybackSource& get_playback_source();
+    TrackMixerSource& get_track_mixer_source();
 
     juce::AudioDeviceManager device_manager;
 private:
-    void handleDeviceChange();
+    void handle_device_change();
 
     void calculate_active_channel_mapping(std::unordered_map<ChannelId, ChannelId>& m, juce::BigInteger active_channel_bits);
     void track_update_channel(TrackId track_id);
@@ -63,7 +66,8 @@ private:
     juce::AudioFormatManager format_manager;
     Transport transport;
     StreamManager stream_manager;
-    PlaybackSource playback_source;
+    TrackMixerSource track_mixer_source;
+    AudioInputView input_view;
 
     std::unordered_map<ChannelId, ChannelId> input_phys_to_buf_id;
     std::unordered_map<ChannelId, ChannelId> output_phys_to_buf_id;

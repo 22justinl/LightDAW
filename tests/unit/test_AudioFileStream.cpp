@@ -17,8 +17,8 @@ TEST_CASE("AudioFileStream single thread functionality") {
 
     juce::AudioFormatReader* reader = format_manager.createReaderFor(file);
     REQUIRE(reader != nullptr);
-
-    tracks.emplace(0, std::make_unique<Track>(transport, 0));
+    AudioInputView input_view;
+    tracks.emplace(0, std::make_unique<Track>(transport, 0, input_view));
     StreamManager stream_manager(transport, format_manager, tracks);
     Clip clip(0, file, 0, 0, reader->lengthInSamples);
 

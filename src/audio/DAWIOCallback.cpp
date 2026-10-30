@@ -4,8 +4,6 @@
 
 #include <juce_audio_devices/juce_audio_devices.h>
 
-// #include <algorithm>
-
 // PUBLIC FUNCTIONS
 
 DAWIOCallback::DAWIOCallback(AudioEngine& audio_engine_): audio_engine(audio_engine_) { }
@@ -35,47 +33,31 @@ void DAWIOCallback::audioDeviceIOCallbackWithContext(
     }
     if (left_channel == -1) { return; }
 
-    auto& tracks = audio_engine.get_tracks();
-    for (TrackId track_id : audio_engine.get_track_ids()) {
-        Track& track = *tracks[track_id];
-        if (track.is_muted()) { continue; }
-        if (track.is_monitoring()) {
-            juce::FloatVectorOperations::add(outputChannelData[left_channel], inputChannelData[track.get_buffer_channel()], numSamples);
-            if (right_channel != -1) {
-                juce::FloatVectorOperations::add(outputChannelData[right_channel], inputChannelData[track.get_buffer_channel()], numSamples);
-            }
-        }
+    juce::AudioBuffer<float> buffer(outputChannelData, numOutputChannels, numSamples);
+    juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
 
-        // TODO: add track audio
-    }
-    if (audio_engine.is_playing()) {
-        if (audio_engine.is_playback_ready()) {
-            juce::AudioBuffer<float> buffer(
-                    outputChannelData,
-                    numOutputChannels,
-                    numSamples);
+    audio_engine.set_input_view_ptr(inputChannelData);
+    audio_engine.get_track_mixer_source().getNextAudioBlock(info);
+    audio_engine.set_input_view_ptr(nullptr);
 
-            juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
-            audio_engine.get_playback_source().getNextAudioBlock(info);
-        }
+    if (audio_engine.is_playing() && audio_engine.is_playback_ready()) {
         audio_engine.advance_playhead(numSamples);
         audio_engine.check_threshold_and_notify();
     }
 
-    // if (input_muted) {
-    //     for (int channel = 0; channel < numOutputChannels; ++channel) {
-    //         juce::FloatVectorOperations::clear(outputChannelData[channel], numSamples);
-    //     }
-    //     return;
-    // }
+
+    // TODO: remove after checking monitoring during playback (remember to commit)
+    // if (audio_engine.is_playing()) {
+    //     if (audio_engine.is_playback_ready()) {
+    //         juce::AudioBuffer<float> buffer(
+    //                 outputChannelData,
+    //                 numOutputChannels,
+    //                 numSamples);
     //
-    // if (numInputChannels == 1) {
-    //     for (int channel = 0; channel < numOutputChannels; ++channel) {
-    //         juce::FloatVectorOperations::copyWithMultiply(outputChannelData[channel], inputChannelData[0], input_gain, numSamples);
+    //         juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);
+    //         audio_engine.get_track_mixer_source().getNextAudioBlock(info);
     //     }
-    // } else {
-    //     for (int channel = 0; channel < std::min(numInputChannels, numOutputChannels); ++channel) {
-    //         juce::FloatVectorOperations::copyWithMultiply(outputChannelData[channel], inputChannelData[channel], input_gain, numSamples);
-    //     }
+    //     audio_engine.advance_playhead(numSamples);
+    //     audio_engine.check_threshold_and_notify();
     // }
 }

@@ -23,7 +23,7 @@ target_sources(LightDAW
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/PlaybackSource.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
@@ -71,7 +71,7 @@ target_sources(unit_tests
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/PlaybackSource.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
@@ -115,7 +115,7 @@ target_sources(streaming_test
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/PlaybackSource.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp

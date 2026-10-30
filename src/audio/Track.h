@@ -2,6 +2,7 @@
 
 #include "audio/AudioFileStream.h"
 #include "audio/TrackAudioSource.h"
+#include "audio/TrackMixerControls.h"
 #include "audio/Transport.h"
 #include "Types.h"
 
@@ -42,8 +43,8 @@ struct TrackPlaybackState {
 
 class Track: public juce::ChangeBroadcaster {
 public:
-    Track(Transport& transport_, TrackId id_);
-    Track(Transport& transport_, TrackId id_, const juce::String& name);
+    Track(Transport& transport_, TrackId id_, AudioInputView& input_view_);
+    Track(Transport& transport_, TrackId id_, AudioInputView& input_view_, const juce::String& name);
 
     ~Track();
 
@@ -91,17 +92,6 @@ private:
     juce::String name = "New Track";
     ClipId next_clip_id = 0;
 
-    float gain_db = 0;
-    bool muted = false;
-    bool monitoring = false;
-
-    // TODO: stereo/mono and panning (juce::dsp::Panner)
-    // mono also needs panning (to center) not just copies on left and right
-
-    juce::String selected_device_name = "";
-    ChannelId selected_channel = -1;
-    ChannelId channel = -1;         // use this if current device is not selected device
-    ChannelId buffer_channel = -1;  // channel index in callback buffer
-
+    TrackMixerControls mixer_controls;
     TrackAudioSource audio_source;
 };

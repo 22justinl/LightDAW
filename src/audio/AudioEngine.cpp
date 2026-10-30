@@ -8,7 +8,7 @@ constexpr ChannelId MAX_OUTPUT_CHANNELS = 8;
 
 // PUBLIC FUNCTIONS
 
-AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(transport, format_manager, tracks), playback_source(transport) {
+AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(transport, format_manager, tracks), track_mixer_source(transport) {
     device_manager.initialise(MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, nullptr, true, default_device);
     device_manager.addAudioCallback(&io_callback);
     device_manager.addChangeListener(this);
@@ -26,15 +26,15 @@ AudioEngine::~AudioEngine() {
 
 void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source) {
     if (source == &device_manager) {
-        handleDeviceChange();
+        handle_device_change();
     }
 }
 
 TrackId AudioEngine::add_track() {
-    tracks.emplace(next_track_id, std::make_unique<Track>(transport, next_track_id));
+    tracks.emplace(next_track_id, std::make_unique<Track>(transport, next_track_id, input_view));
     track_ids.push_back(next_track_id);
     track_update_channel(next_track_id);
-    playback_source.addInputSource(&tracks[next_track_id]->get_audio_source());
+    track_mixer_source.addInputSource(&tracks[next_track_id]->get_audio_source());
     return next_track_id++;
 }
 
@@ -48,7 +48,7 @@ void AudioEngine::erase_track(TrackId track_id) {
             break;
         }
     }
-    playback_source.removeInputSource(&tracks[track_id]->get_audio_source());
+    track_mixer_source.removeInputSource(&tracks[track_id]->get_audio_source());
     tracks.erase(track_id);
 }
 
@@ -62,6 +62,10 @@ std::unordered_map<TrackId, std::unique_ptr<Track>>& AudioEngine::get_tracks() {
 
 std::pair<ChannelId, ChannelId> AudioEngine::output_channels() const {
     return {left_output_buffer_channel, right_output_buffer_channel};
+}
+
+void AudioEngine::set_input_view_ptr(const float* const* input_channel_data) {
+    input_view.input_channel_data = input_channel_data;
 }
 
 // Track interface
@@ -85,7 +89,7 @@ void AudioEngine::track_import_file(TrackId track_id, const juce::File& file, ju
 }
 
 void AudioEngine::play() {
-    playback_source.prepareToPlay(device_setup.bufferSize, device_setup.sampleRate);
+    track_mixer_source.prepareToPlay(device_setup.bufferSize, device_setup.sampleRate);
     transport.set_position(0);
     transport.play();
     stream_manager.startThread();
@@ -122,24 +126,21 @@ void AudioEngine::check_threshold_and_notify() {
     stream_manager.check_threshold_and_notify();
 }
 
-PlaybackSource& AudioEngine::get_playback_source() {
-    return playback_source;
+TrackMixerSource& AudioEngine::get_track_mixer_source() {
+    return track_mixer_source;
 }
 
 // PRIVATE FUNCTIONS
 
-void AudioEngine::handleDeviceChange() {
+void AudioEngine::handle_device_change() {
     device_manager.getAudioDeviceSetup(device_setup);
     input_phys_to_buf_id.clear();
     output_phys_to_buf_id.clear();
 
-    // DBG("Device Changed:");
     if (!device_setup.inputDeviceName.isEmpty()) {
-        // DBG("Input channel mapping");
         calculate_active_channel_mapping(input_phys_to_buf_id, device_manager.getCurrentAudioDevice()->getActiveInputChannels());
     }
     if (!device_setup.outputDeviceName.isEmpty()) {
-        // DBG("Output channel mapping");
         calculate_active_channel_mapping(output_phys_to_buf_id, device_manager.getCurrentAudioDevice()->getActiveOutputChannels());
     }
     ChannelId active_output_channels = static_cast<ChannelId>(output_phys_to_buf_id.size());

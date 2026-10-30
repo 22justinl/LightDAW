@@ -5,9 +5,9 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
-class PlaybackSource: public juce::PositionableAudioSource {
+class TrackMixerSource: public juce::PositionableAudioSource {
 public:
-    PlaybackSource(Transport& transport_);
+    TrackMixerSource(Transport& transport_);
     void setNextReadPosition(SamplePosition newPosition) override;
     SamplePosition getNextReadPosition() const override;
     SamplePosition getTotalLength() const override;

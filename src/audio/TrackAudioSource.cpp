@@ -1,10 +1,15 @@
 #include "audio/TrackAudioSource.h"
 
 #include "audio/Track.h"
+#include "juce_audio_basics/juce_audio_basics.h"
 
 #include <juce_core/juce_core.h>
 
-TrackAudioSource::TrackAudioSource(Transport& transport_, std::vector<Clip>& clips_): transport(transport_), clips(clips_) {}
+TrackAudioSource::TrackAudioSource(Transport& transport_, std::vector<Clip>& clips_, AudioInputView& input_view_, TrackMixerControls& mixer_controls_)
+    :   transport(transport_),
+        clips(clips_),
+        input_view(input_view_),
+        mixer_controls(mixer_controls_) {}
 
 void TrackAudioSource::setNextReadPosition(SamplePosition newPosition) {
     juce::ignoreUnused(newPosition);
@@ -38,13 +43,24 @@ void TrackAudioSource::releaseResources() {
 }
 
 void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
-    bufferToFill.clearActiveBufferRegion();
-    if (current_clip >= clips.size()) {
+    if (mixer_controls.muted.load()) {
+        bufferToFill.clearActiveBufferRegion();
         return;
     }
     // int num_channels = bufferToFill.buffer->getNumChannels();
     int n = bufferToFill.numSamples;
     float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
+
+    if (mixer_controls.monitoring.load() && input_view.input_channel_data) {
+        juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.buffer_channel], n);
+        juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.buffer_channel], n);
+    } else {
+        bufferToFill.clearActiveBufferRegion();
+    }
+
+    if (current_clip >= clips.size() || !transport.is_playing()) {
+        return;
+    }
     while (current_clip < clips.size() && n > 0 && transport.is_playing()) {
         if (transport.get_position() < clips[current_clip].pos) {
             break;
