@@ -24,8 +24,6 @@ public:
     std::vector<TrackId>& get_track_ids();
     std::unordered_map<TrackId, std::unique_ptr<Track>>& get_tracks();
 
-    std::pair<ChannelId, ChannelId> output_channels() const;
-
     void set_input_view_ptr(const float* const* input_channel_data);
 
     // Track interface
@@ -69,9 +67,12 @@ private:
     TrackMixerSource track_mixer_source;
     AudioInputView input_view;
 
-    std::unordered_map<ChannelId, ChannelId> input_phys_to_buf_id;
-    std::unordered_map<ChannelId, ChannelId> output_phys_to_buf_id;
-    ChannelId default_input_channel = -1;
+    std::unordered_map<ChannelId, ChannelId> input_channel_mapping;
+    std::unordered_map<ChannelId, ChannelId> output_channel_mapping;
+    ChannelId default_left_input_channel = -1;
+    ChannelId default_right_input_channel = -1;
+    ChannelId default_left_output_channel = -1;
+    ChannelId default_right_output_channel = -1;
 
     ChannelId left_output_channel = -1;
     ChannelId right_output_channel = -1;

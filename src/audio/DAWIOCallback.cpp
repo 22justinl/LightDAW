@@ -25,13 +25,9 @@ void DAWIOCallback::audioDeviceIOCallbackWithContext(
         const juce::AudioIODeviceCallbackContext&) {
     juce::ignoreUnused(numInputChannels);
 
-    const std::pair<ChannelId, ChannelId> output_channels = audio_engine.output_channels();
-    const ChannelId left_channel = output_channels.first;
-    const ChannelId right_channel = output_channels.second;
     for (int channel = 0; channel < numOutputChannels; ++channel) {
         juce::FloatVectorOperations::clear(outputChannelData[channel], numSamples);
     }
-    if (left_channel == -1) { return; }
 
     juce::AudioBuffer<float> buffer(outputChannelData, numOutputChannels, numSamples);
     juce::AudioSourceChannelInfo info(&buffer, 0, numSamples);

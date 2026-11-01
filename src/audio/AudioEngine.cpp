@@ -14,7 +14,6 @@ AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(tran
     device_manager.addChangeListener(this);
 
     format_manager.registerBasicFormats();
-    // format_manager.registerFormat(new juce::MP3AudioFormat(), false);
 }
 
 AudioEngine::~AudioEngine() {
@@ -58,10 +57,6 @@ std::vector<TrackId>& AudioEngine::get_track_ids() {
 
 std::unordered_map<TrackId, std::unique_ptr<Track>>& AudioEngine::get_tracks() {
     return tracks;
-}
-
-std::pair<ChannelId, ChannelId> AudioEngine::output_channels() const {
-    return {left_output_buffer_channel, right_output_buffer_channel};
 }
 
 void AudioEngine::set_input_view_ptr(const float* const* input_channel_data) {
@@ -134,25 +129,21 @@ TrackMixerSource& AudioEngine::get_track_mixer_source() {
 
 void AudioEngine::handle_device_change() {
     device_manager.getAudioDeviceSetup(device_setup);
-    input_phys_to_buf_id.clear();
-    output_phys_to_buf_id.clear();
+    input_channel_mapping.clear();
+    output_channel_mapping.clear();
 
     if (!device_setup.inputDeviceName.isEmpty()) {
-        calculate_active_channel_mapping(input_phys_to_buf_id, device_manager.getCurrentAudioDevice()->getActiveInputChannels());
+        calculate_active_channel_mapping(input_channel_mapping, device_manager.getCurrentAudioDevice()->getActiveInputChannels());
     }
     if (!device_setup.outputDeviceName.isEmpty()) {
-        calculate_active_channel_mapping(output_phys_to_buf_id, device_manager.getCurrentAudioDevice()->getActiveOutputChannels());
+        calculate_active_channel_mapping(output_channel_mapping, device_manager.getCurrentAudioDevice()->getActiveOutputChannels());
     }
-    ChannelId active_output_channels = static_cast<ChannelId>(output_phys_to_buf_id.size());
+    ChannelId active_output_channels = static_cast<ChannelId>(output_channel_mapping.size());
 
-    input_phys_to_buf_id[-1] = -1;
-    output_phys_to_buf_id[-1] = -1;
+    input_channel_mapping[-1] = -1;
+    output_channel_mapping[-1] = -1;
 
-    // DBG("\tInput:\t" + device_setup.inputDeviceName + "\t(" + std::to_string(active_input_channels) + " channels)");
-    // DBG("\tOutput:\t" + device_setup.outputDeviceName + "\t(" + std::to_string(active_output_channels) + " channels)");
-    // DBG("\tSample rate:\t" + std::to_string(device_setup.sampleRate) + "\tBuffer size:\t" + std::to_string(device_setup.bufferSize));
-
-    default_input_channel = device_setup.inputChannels.findNextSetBit(0);
+    default_left_input_channel = device_setup.inputChannels.findNextSetBit(0);
 
     for (const auto& p : tracks) {
         track_update_channel(p.first);
@@ -164,19 +155,15 @@ void AudioEngine::handle_device_change() {
         left_output_channel = device_setup.outputChannels.findNextSetBit(0);
         right_output_channel = device_setup.outputChannels.findNextSetBit(static_cast<int>(left_output_channel+1));
     }
-    left_output_buffer_channel = output_phys_to_buf_id[left_output_channel];
-    right_output_buffer_channel = output_phys_to_buf_id[right_output_channel];
-    // DBG("Left out: " + std::to_string(left_output_channel) + "->" + std::to_string(left_output_buffer_channel));
-    // DBG("Right out: " + std::to_string(right_output_channel) + "->" + std::to_string(right_output_buffer_channel));
+    left_output_buffer_channel = output_channel_mapping[left_output_channel];
+    right_output_buffer_channel = output_channel_mapping[right_output_channel];
 }
 
 void AudioEngine::calculate_active_channel_mapping(std::unordered_map<ChannelId, ChannelId>& m, juce::BigInteger active_channel_bits) {
     int active_channels = 0;
     int bit = active_channel_bits.findNextSetBit(0);
-    // DBG("\t\tPhysical\tBuffer");
     while (bit != -1) {
         m[bit] = active_channels;
-        // DBG("\t\t" + std::to_string(bit) + "\t->\t" + std::to_string(active_channels));
         ++active_channels;
         bit = active_channel_bits.findNextSetBit(bit+1);
     }
@@ -186,12 +173,12 @@ void AudioEngine::track_update_channel(TrackId track_id) {
     Track& track = *tracks[track_id];
     if (    track.get_selected_device_name() == device_setup.inputDeviceName &&
             track.get_selected_channel() != -1 &&
-            input_phys_to_buf_id.find(track.get_selected_channel()) != input_phys_to_buf_id.end()) {
+            input_channel_mapping.find(track.get_selected_channel()) != input_channel_mapping.end()) {
         track.set_channel(track.get_selected_channel());
-        track.set_buffer_channel(input_phys_to_buf_id[track.get_selected_channel()]);
+        track.set_buffer_channel(input_channel_mapping[track.get_selected_channel()]);
     } else {
-        track.set_channel(default_input_channel);
-        track.set_buffer_channel(input_phys_to_buf_id[default_input_channel]);
+        track.set_channel(default_left_input_channel);
+        track.set_buffer_channel(input_channel_mapping[default_left_input_channel]);
     }
 }
 
