@@ -38,30 +38,32 @@ void TrackAudioSource::prepareToPlay(int samplePerBlockExpected, double sampleRa
     current_clip = 0;
 }
 
-void TrackAudioSource::releaseResources() {
-
-}
+void TrackAudioSource::releaseResources() { }
 
 void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
+    bufferToFill.clearActiveBufferRegion();
+
     if (mixer_controls.muted.load()) {
-        bufferToFill.clearActiveBufferRegion();
         return;
     }
-    // int num_channels = bufferToFill.buffer->getNumChannels();
     int n = bufferToFill.numSamples;
     float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
 
-    if (mixer_controls.monitoring.load() && input_view.input_channel_data) {
-        juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.buffer_channel], n);
-        juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.buffer_channel], n);
-    } else {
-        bufferToFill.clearActiveBufferRegion();
+
+    // TODO: handle mono/stereo input for both monitor audio and clip audio (use separate function for all processing?)
+    if (mixer_controls.monitoring.load() && input_view.input_channel_data && mixer_controls.input_buffer_idx >= 0) {
+        juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
+        if (mixer_controls.input_layout == ChannelLayout::Stereo) {
+            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx+1], n);
+        } else {
+            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
+        }
     }
 
-    if (current_clip >= clips.size() || !transport.is_playing()) {
+    if (!transport.is_playing() || current_clip >= clips.size()) {
         return;
     }
-    while (current_clip < clips.size() && n > 0 && transport.is_playing()) {
+    while (transport.is_playing() && current_clip < clips.size() && n > 0) {
         if (transport.get_position() < clips[current_clip].pos) {
             break;
         }
@@ -75,4 +77,14 @@ void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
         buffers[1] += read;
         n -= read;
     }
+}
+
+OutputDestination TrackAudioSource::get_output_dest() const {
+    return mixer_controls.output_dest.load();
+}
+ChannelId TrackAudioSource::get_output_channel() const {
+    return mixer_controls.output_buffer_idx.load();
+}
+ChannelLayout TrackAudioSource::get_output_layout() const {
+    return mixer_controls.output_layout.load();
 }

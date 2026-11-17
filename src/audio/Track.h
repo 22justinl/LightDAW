@@ -60,27 +60,17 @@ public:
     bool is_monitoring() const;
     void set_monitoring(bool new_monitoring);
 
-    const juce::String& get_selected_device_name() const;
-    void set_selected_device_name(const juce::String& new_device_name);
-
-    ChannelId get_selected_channel() const;
-    void set_selected_channel(ChannelId new_channel);
-
-    ChannelId get_channel() const;
-    void set_channel(ChannelId new_channel);
-
-    ChannelId get_buffer_channel() const;
-    void set_buffer_channel(ChannelId new_channel);
-
     TrackAudioSource& get_audio_source();
 
     SamplePosition get_max_sample_position() const;
 
     const Clip* get_clip_by_id(ClipId clip_id) const;
 
-    std::queue<ClipChange> clip_change_queue;
-
     void import_file(const juce::File& file, SamplePosition pos, SamplePosition start, SamplePosition end);
+
+    TrackMixerControls& get_mixer_controls();
+
+    std::queue<ClipChange> clip_change_queue;
 
     std::vector<Clip> clips; // sorted by start position
 

@@ -6,6 +6,20 @@
 
 #include <atomic>
 
+enum class InputSource {
+    External = 1
+};
+
+enum class OutputDestination {
+    Master = 1,
+    External = 2
+};
+
+enum class ChannelLayout {
+    Mono,
+    Stereo
+};
+
 struct TrackMixerControls {
     std::atomic<float> gain_db = 0;
     std::atomic_bool muted = false;
@@ -14,9 +28,15 @@ struct TrackMixerControls {
     // TODO: stereo/mono and panning (juce::dsp::Panner)
     // mono also needs panning (to center) not just copies on left and right
 
-    // TODO: do we need atomics here?
-    juce::String selected_device_name = "";
-    ChannelId selected_channel = -1;
-    ChannelId channel = -1;         // use this if current device is not selected device
-    ChannelId buffer_channel = -1;  // channel index in callback buffer
+    // Input Info
+    std::atomic<InputSource> input_src = InputSource::External;
+    std::atomic<ChannelId> input_src_channel = 0;
+    std::atomic<ChannelLayout> input_layout = ChannelLayout::Mono;
+    std::atomic<ChannelId> input_buffer_idx = -1;
+
+    // Output Info
+    std::atomic<OutputDestination> output_dest = OutputDestination::Master;
+    std::atomic<ChannelId> output_dest_channel = -1;
+    std::atomic<ChannelLayout> output_layout = ChannelLayout::Stereo;
+    std::atomic<ChannelId> output_buffer_idx = -1;
 };

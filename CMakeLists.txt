@@ -28,6 +28,7 @@ target_sources(LightDAW
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
         src/audio/Transport.cpp
+        src/audio/ChannelManager.cpp
 
         src/gui/AudioSettingsComponent.cpp
         src/gui/TrackHeaderComponent.cpp
@@ -76,6 +77,7 @@ target_sources(unit_tests
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
         src/audio/Transport.cpp
+        src/audio/ChannelManager.cpp
 )
 target_include_directories(unit_tests
     PRIVATE
@@ -120,6 +122,7 @@ target_sources(streaming_test
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
         src/audio/Transport.cpp
+        src/audio/ChannelManager.cpp
 )
 target_link_libraries(streaming_test
     PRIVATE

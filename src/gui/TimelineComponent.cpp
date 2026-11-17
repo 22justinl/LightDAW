@@ -1,7 +1,7 @@
 #include "gui/TimelineComponent.h"
 
-TimelineLaneComponent::TimelineLaneComponent(Track& track_, int& track_height_, double& pixels_per_sample_)
-    : track(track_), track_height(track_height_), pixels_per_sample(pixels_per_sample_)
+TimelineLaneComponent::TimelineLaneComponent(Track& track_, int& track_height_, int& spacing_, double& pixels_per_sample_)
+    : track(track_), track_height(track_height_), spacing(spacing_), pixels_per_sample(pixels_per_sample_)
 {
     for (Clip& clip : track.clips) {
         clip_components.emplace(clip.id, std::make_unique<ClipComponent>(track, clip.id));
@@ -65,17 +65,17 @@ void TimelineLaneComponent::update_all_clip_bounds() {
     }
 }
 
-TimelineComponent::TimelineComponent(AudioEngine& audio_engine_, int& track_height_): audio_engine(audio_engine_), track_height(track_height_) { }
+TimelineComponent::TimelineComponent(AudioEngine& audio_engine_, int& track_height_, int& spacing_): audio_engine(audio_engine_), track_height(track_height_), spacing(spacing_) { }
 void TimelineComponent::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::darkgrey);
 }
 
 void TimelineComponent::resized() {
     auto area = getLocalBounds();
-
+    area.removeFromTop(spacing);
     const auto& track_ids = audio_engine.get_track_ids();
     for (TrackId track_id : track_ids) {
-        track_lanes[track_id]->setBounds(area.removeFromTop(track_height));
+        track_lanes[track_id]->setBounds(area.removeFromTop(track_height+spacing));
         if (area.isEmpty()) {
             break;
         }
@@ -83,7 +83,7 @@ void TimelineComponent::resized() {
 }
 
 void TimelineComponent::add_lane(TrackId id) {
-    track_lanes.emplace(id, std::make_unique<TimelineLaneComponent>(*audio_engine.get_tracks()[id], track_height, pixels_per_sample));
+    track_lanes.emplace(id, std::make_unique<TimelineLaneComponent>(*audio_engine.get_tracks()[id], track_height, spacing, pixels_per_sample));
     addAndMakeVisible(track_lanes[id].get());
 }
 void TimelineComponent::delete_lane(TrackId id) {

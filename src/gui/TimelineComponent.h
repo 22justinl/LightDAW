@@ -10,7 +10,7 @@
 
 class TimelineLaneComponent: public juce::Component, private juce::ChangeListener {
 public:
-    TimelineLaneComponent(Track& track_, int& track_height_, double& pixels_per_sample);
+    TimelineLaneComponent(Track& track_, int& track_height_, int& spacing_, double& pixels_per_sample);
     void paint(juce::Graphics &g) override;
     void resized() override;
 
@@ -28,12 +28,13 @@ private:
 
     Track& track;
     int& track_height;
+    int& spacing;
     double& pixels_per_sample;
 };
 
 class TimelineComponent: public juce::Component {
 public:
-    TimelineComponent(AudioEngine& audio_engine_, int& track_height_);
+    TimelineComponent(AudioEngine& audio_engine_, int& track_height_, int& spacing_);
     void paint(juce::Graphics &g) override;
     void resized() override;
 
@@ -43,6 +44,7 @@ private:
     AudioEngine& audio_engine;
     std::unordered_map<TrackId, std::unique_ptr<TimelineLaneComponent>> track_lanes;
     int& track_height;
+    int& spacing;
     double pixels_per_sample = 800.0/(44100*60);
     SamplePosition timeline_sample_length = 44100 * 60;
 };

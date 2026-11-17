@@ -2,7 +2,7 @@
 
 // PUBLIC FUNCTIONS
 
-TrackListComponent::TrackListComponent(AudioEngine& audio_engine_): audio_engine(audio_engine_), timeline(audio_engine_, track_height) {
+TrackListComponent::TrackListComponent(AudioEngine& audio_engine_): audio_engine(audio_engine_), timeline(audio_engine_, track_height, spacing) {
     timeline_viewport.setViewedComponent(&timeline, false);
     timeline_viewport.setScrollBarsShown(false, false, false, true);
     addAndMakeVisible(timeline_viewport);
@@ -11,7 +11,8 @@ TrackListComponent::~TrackListComponent() {
 }
 
 void TrackListComponent::paint(juce::Graphics &g) {
-    g.setColour(juce::Colours::grey);
+    g.setColour(juce::Colours::black);
+    g.fillAll();
 }
 
 void TrackListComponent::resized() {
@@ -26,7 +27,7 @@ void TrackListComponent::add_track() {
     track_components[track_id] = std::move(ptr);
     timeline.add_lane(track_id);
 
-    draw_tracks();
+    setSize(getLocalBounds().getWidth(), calculate_height());
 }
 
 void TrackListComponent::delete_track(TrackId track_id) {
@@ -35,19 +36,23 @@ void TrackListComponent::delete_track(TrackId track_id) {
     timeline.delete_lane(track_id);
     audio_engine.erase_track(track_id);
 
-    draw_tracks();
+    setSize(getLocalBounds().getWidth(), calculate_height());
 }
+
 
 int TrackListComponent::calculate_height() const {
     if (track_components.empty()) { return 0; }
-    return static_cast<int>(track_components.size()) * (track_height + spacing) - spacing;
+    return 2*spacing + static_cast<int>(track_components.size()) * (track_height + spacing) - spacing;
 }
 
 void TrackListComponent::draw_tracks() {
-    setSize(getLocalBounds().getWidth(), calculate_height());
 
     auto timeline_box = getLocalBounds();
-    auto header_col = timeline_box.removeFromLeft(350);
+    auto header_col = timeline_box.removeFromLeft(header_width);
+    header_col.removeFromLeft(spacing);
+    header_col.removeFromRight(spacing);
+    header_col.removeFromTop(spacing);
+    header_col.removeFromBottom(spacing);
 
     const auto& track_ids = audio_engine.get_track_ids();
     for (TrackId track_id : track_ids) {
@@ -59,5 +64,5 @@ void TrackListComponent::draw_tracks() {
     }
 
     timeline_viewport.setBounds(timeline_box);
-    timeline.setSize(timeline_viewport.getMaximumVisibleWidth(), timeline_box.getHeight());
+    timeline.setSize(1000, timeline_viewport.getMaximumVisibleHeight());
 }

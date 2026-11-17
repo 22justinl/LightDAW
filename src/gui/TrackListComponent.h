@@ -27,9 +27,10 @@ private:
     juce::Viewport timeline_viewport;
 
     std::unordered_map<TrackId, std::unique_ptr<TrackHeaderComponent>> track_components;
-
-    int track_height = 50;
-    int spacing = 0;
+    // 20+4+4+5+4+4*34+3*4+8+4*34+3*4+8+4*34+3*4
+    int header_width = 497;
+    int track_height = 116;
+    int spacing = 2;
 
     TimelineComponent timeline;
 };

@@ -1,6 +1,7 @@
 #include "audio/AudioEngine.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <string>
 
 constexpr char default_device[] = "MacBook Pro Microphone";
 constexpr ChannelId MAX_INPUT_CHANNELS = 8;
@@ -8,7 +9,7 @@ constexpr ChannelId MAX_OUTPUT_CHANNELS = 8;
 
 // PUBLIC FUNCTIONS
 
-AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(transport, format_manager, tracks), track_mixer_source(transport) {
+AudioEngine::AudioEngine(): io_callback(*this), transport(), stream_manager(transport, format_manager, tracks), track_mixer_source(transport, channel_manager, tracks) {
     device_manager.initialise(MAX_INPUT_CHANNELS, MAX_OUTPUT_CHANNELS, nullptr, true, default_device);
     device_manager.addAudioCallback(&io_callback);
     device_manager.addChangeListener(this);
@@ -20,7 +21,9 @@ AudioEngine::~AudioEngine() {
     if (is_playing()) {
         stop();
     }
+    device_manager.removeAudioCallback(&io_callback);
     device_manager.removeChangeListener(this);
+    track_mixer_source.releaseResources();
 }
 
 void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source) {
@@ -32,8 +35,6 @@ void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster* source) {
 TrackId AudioEngine::add_track() {
     tracks.emplace(next_track_id, std::make_unique<Track>(transport, next_track_id, input_view));
     track_ids.push_back(next_track_id);
-    track_update_channel(next_track_id);
-    track_mixer_source.addInputSource(&tracks[next_track_id]->get_audio_source());
     return next_track_id++;
 }
 
@@ -47,7 +48,6 @@ void AudioEngine::erase_track(TrackId track_id) {
             break;
         }
     }
-    track_mixer_source.removeInputSource(&tracks[track_id]->get_audio_source());
     tracks.erase(track_id);
 }
 
@@ -125,60 +125,19 @@ TrackMixerSource& AudioEngine::get_track_mixer_source() {
     return track_mixer_source;
 }
 
+ChannelManager& AudioEngine::get_channel_manager() {
+    return channel_manager;
+}
+
 // PRIVATE FUNCTIONS
 
 void AudioEngine::handle_device_change() {
     device_manager.getAudioDeviceSetup(device_setup);
-    input_channel_mapping.clear();
-    output_channel_mapping.clear();
+    channel_manager.update_channels(device_setup);
 
-    if (!device_setup.inputDeviceName.isEmpty()) {
-        calculate_active_channel_mapping(input_channel_mapping, device_manager.getCurrentAudioDevice()->getActiveInputChannels());
-    }
-    if (!device_setup.outputDeviceName.isEmpty()) {
-        calculate_active_channel_mapping(output_channel_mapping, device_manager.getCurrentAudioDevice()->getActiveOutputChannels());
-    }
-    ChannelId active_output_channels = static_cast<ChannelId>(output_channel_mapping.size());
-
-    input_channel_mapping[-1] = -1;
-    output_channel_mapping[-1] = -1;
-
-    default_left_input_channel = device_setup.inputChannels.findNextSetBit(0);
-
-    for (const auto& p : tracks) {
-        track_update_channel(p.first);
-    }
-    if (active_output_channels == 0) {
-        left_output_channel = -1;
-        right_output_channel = -1;
-    } else {
-        left_output_channel = device_setup.outputChannels.findNextSetBit(0);
-        right_output_channel = device_setup.outputChannels.findNextSetBit(static_cast<int>(left_output_channel+1));
-    }
-    left_output_buffer_channel = output_channel_mapping[left_output_channel];
-    right_output_buffer_channel = output_channel_mapping[right_output_channel];
-}
-
-void AudioEngine::calculate_active_channel_mapping(std::unordered_map<ChannelId, ChannelId>& m, juce::BigInteger active_channel_bits) {
-    int active_channels = 0;
-    int bit = active_channel_bits.findNextSetBit(0);
-    while (bit != -1) {
-        m[bit] = active_channels;
-        ++active_channels;
-        bit = active_channel_bits.findNextSetBit(bit+1);
+    for (TrackId track_id : track_ids) {
+        TrackMixerControls& mixer_controls = tracks[track_id]->get_mixer_controls();
+        mixer_controls.input_buffer_idx = channel_manager.input_channel_to_buffer_idx(mixer_controls.input_src_channel);
+        mixer_controls.output_buffer_idx = channel_manager.output_channel_to_buffer_idx(mixer_controls.output_dest_channel);
     }
 }
-
-void AudioEngine::track_update_channel(TrackId track_id) {
-    Track& track = *tracks[track_id];
-    if (    track.get_selected_device_name() == device_setup.inputDeviceName &&
-            track.get_selected_channel() != -1 &&
-            input_channel_mapping.find(track.get_selected_channel()) != input_channel_mapping.end()) {
-        track.set_channel(track.get_selected_channel());
-        track.set_buffer_channel(input_channel_mapping[track.get_selected_channel()]);
-    } else {
-        track.set_channel(default_left_input_channel);
-        track.set_buffer_channel(input_channel_mapping[default_left_input_channel]);
-    }
-}
-

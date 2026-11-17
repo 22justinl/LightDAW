@@ -8,7 +8,9 @@
 
 DAWIOCallback::DAWIOCallback(AudioEngine& audio_engine_): audio_engine(audio_engine_) { }
 
-void DAWIOCallback::audioDeviceAboutToStart(juce::AudioIODevice*) { }
+void DAWIOCallback::audioDeviceAboutToStart(juce::AudioIODevice* device) {
+    audio_engine.get_track_mixer_source().prepareToPlay(device->getCurrentBufferSizeSamples(), device->getCurrentSampleRate());
+}
 
 void DAWIOCallback::audioDeviceStopped() { }
 

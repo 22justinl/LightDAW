@@ -20,6 +20,10 @@ public:
     void prepareToPlay(int samplePerBlockExpected, double sampleRate) override;
     void releaseResources() override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+
+    OutputDestination get_output_dest() const;
+    ChannelId get_output_channel() const;
+    ChannelLayout get_output_layout() const;
 private:
     Transport& transport;
     std::vector<Clip>& clips;
