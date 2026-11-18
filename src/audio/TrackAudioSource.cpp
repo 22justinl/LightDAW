@@ -1,9 +1,13 @@
 #include "audio/TrackAudioSource.h"
 
 #include "audio/Track.h"
-#include "juce_audio_basics/juce_audio_basics.h"
 
 #include <juce_core/juce_core.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+
+#include <algorithm>
+
+constexpr float MONO_TO_STEREO_PAN_FACTOR = juce::MathConstants<float>::sqrt2 / 2;
 
 TrackAudioSource::TrackAudioSource(Transport& transport_, std::vector<Clip>& clips_, AudioInputView& input_view_, TrackMixerControls& mixer_controls_)
     :   transport(transport_),
@@ -36,37 +40,42 @@ void TrackAudioSource::setLooping(bool shouldLoop) {
 void TrackAudioSource::prepareToPlay(int samplePerBlockExpected, double sampleRate) {
     juce::ignoreUnused(samplePerBlockExpected, sampleRate);
     current_clip = 0;
+    smoothed_pan_l.reset(sampleRate, 2e-2);
+    smoothed_pan_r.reset(sampleRate, 2e-2);
 }
 
 void TrackAudioSource::releaseResources() { }
 
 void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
-    bufferToFill.clearActiveBufferRegion();
-
-    if (mixer_controls.muted.load()) {
-        return;
-    }
     int n = bufferToFill.numSamples;
     float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
 
+    // update smooth parameters
+    float pan = mixer_controls.get_pan();
+    smoothed_pan_l.setTargetValue(std::max(0.f, 1-pan));
+    smoothed_pan_r.setTargetValue(std::max(0.f, 1+pan));
 
-    // TODO: handle mono/stereo input for both monitor audio and clip audio (use separate function for all processing?)
+    // monitoring
     if (mixer_controls.monitoring.load() && input_view.input_channel_data && mixer_controls.input_buffer_idx >= 0) {
-        juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
-        if (mixer_controls.input_layout == ChannelLayout::Stereo) {
-            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx+1], n);
+        if (mixer_controls.input_layout == ChannelLayout::Mono) {
+            juce::FloatVectorOperations::multiply(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], MONO_TO_STEREO_PAN_FACTOR, n);
+            juce::FloatVectorOperations::multiply(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx], MONO_TO_STEREO_PAN_FACTOR, n);
         } else {
-            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
+            juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
+            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx+1], n);
         }
     }
 
     if (!transport.is_playing() || current_clip >= clips.size()) {
         return;
     }
+
+    // playback
     while (transport.is_playing() && current_clip < clips.size() && n > 0) {
         if (transport.get_position() < clips[current_clip].pos) {
             break;
         }
+        // TODO: handle Mono and Stereo clips, currently assuming clip is stereo
         if (!clips[current_clip].stream || clips[current_clip].stream->is_done()) {
             ++current_clip;
             continue;
@@ -79,12 +88,16 @@ void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
     }
 }
 
-OutputDestination TrackAudioSource::get_output_dest() const {
-    return mixer_controls.output_dest.load();
+void TrackAudioSource::process_audio_block(const juce::AudioSourceChannelInfo& bufferToFill) {
+    int n = bufferToFill.numSamples;
+    float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
+
+    for (int i = 0; i < n; ++i) {
+        buffers[0][i] *= smoothed_pan_l.getNextValue();
+        buffers[1][i] *= smoothed_pan_r.getNextValue();
+    }
 }
-ChannelId TrackAudioSource::get_output_channel() const {
-    return mixer_controls.output_buffer_idx.load();
-}
-ChannelLayout TrackAudioSource::get_output_layout() const {
-    return mixer_controls.output_layout.load();
+
+const TrackMixerControls& TrackAudioSource::get_mixer_controls() const {
+    return mixer_controls;
 }

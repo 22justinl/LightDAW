@@ -20,6 +20,9 @@ public:
     void prepareToPlay(int samplePerBlockExpected, double sampleRate) override;
     void releaseResources() override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+
+    void increment_solo_count();
+    void decrement_solo_count();
 private:
     void route_track_audio_to_output(TrackAudioSource& source, juce::AudioBuffer<float>* buffer, int n);
 
@@ -29,6 +32,8 @@ private:
 
     SamplePosition read_position;
     SamplePosition total_length;
+
+    std::atomic_int solo_count{0};
 
     juce::AudioBuffer<float> temp_buffer;
     juce::AudioSourceChannelInfo temp_buffer_info;

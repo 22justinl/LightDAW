@@ -1,63 +1,11 @@
 #include "gui/TrackHeaderComponent.h"
-#include "juce_graphics/juce_graphics.h"
 
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_graphics/juce_graphics.h>
 
 // PUBLIC FUNCTIONS
-
-// TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId track_id_)
-//     :   audio_engine(audio_engine_),
-//         track_id(track_id_),
-//         id_label(juce::String(), std::to_string(track_id_)) {
-//
-//     addAndMakeVisible(id_label);
-//
-//     delete_button.onClick = [&](){
-//         if (on_delete) {
-//             on_delete();
-//         }
-//     };
-//     addAndMakeVisible(delete_button);
-//
-//     // TODO: change button to image button
-//     mute_button.setToggleable(true);
-//     mute_button.setToggleState(true, juce::dontSendNotification);
-//     mute_button.setClickingTogglesState(true);
-//     mute_button.onClick = [&](){
-//         audio_engine.track_set_mute(track_id, !audio_engine.track_is_muted(track_id));
-//     };
-//     addAndMakeVisible(mute_button);
-//
-//     monitoring_button.setToggleable(true);
-//     monitoring_button.setToggleState(true, juce::dontSendNotification);
-//     monitoring_button.setClickingTogglesState(true);
-//     monitoring_button.onClick = [&](){
-//         audio_engine.track_set_monitoring(track_id, !audio_engine.track_is_monitoring(track_id));
-//     };
-//     addAndMakeVisible(monitoring_button);
-// }
-//
-// void TrackHeaderComponent::paint(juce::Graphics& g) {
-//     g.fillAll(juce::Colours::grey);
-// }
-//
-// void TrackHeaderComponent::resized() {
-//     auto area = getLocalBounds();
-//
-//     id_label.setBounds(area.removeFromLeft(75));
-//     area.removeFromLeft(5);
-//     delete_button.setBounds(area.removeFromLeft(75));
-//     area.removeFromLeft(5);
-//     mute_button.setBounds(area.removeFromLeft(75));
-//     area.removeFromLeft(5);
-//     monitoring_button.setBounds(area.removeFromLeft(75));
-// }
-//
-// void TrackHeaderComponent::set_on_delete(std::function<void()> fn) {
-//     on_delete = fn;
-// }
 
 TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId track_id_)
     :   audio_engine(audio_engine_),
@@ -72,10 +20,20 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
     mute_button.setToggleState(true, juce::dontSendNotification);
     mute_button.setClickingTogglesState(true);
     mute_button.onClick = [&](){
-        audio_engine.track_set_mute(track_id, !audio_engine.track_is_muted(track_id));
+        audio_engine.track_set_muted(track_id, !audio_engine.track_is_muted(track_id));
     };
-    // TODO: Solo button
-    // TODO: Recording button
+    solo_button.setToggleable(true);
+    solo_button.setToggleState(true, juce::dontSendNotification);
+    solo_button.setClickingTogglesState(true);
+    solo_button.onClick = [&](){
+        audio_engine.track_set_soloed(track_id, !audio_engine.track_is_soloed(track_id));
+    };
+    recording_button.setToggleable(true);
+    recording_button.setToggleState(true, juce::dontSendNotification);
+    recording_button.setClickingTogglesState(true);
+    recording_button.onClick = [&](){
+        audio_engine.track_set_recording(track_id, !audio_engine.track_is_recording(track_id));
+    };
     monitoring_button.setToggleable(true);
     monitoring_button.setToggleState(true, juce::dontSendNotification);
     monitoring_button.setClickingTogglesState(true);
@@ -119,6 +77,10 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
 
     volume_slider.setLookAndFeel(&look_and_feel);
     pan_slider.setLookAndFeel(&look_and_feel);
+    pan_slider.setRange(-1, 1, 0);
+    pan_slider.onValueChange = [&]() {
+        audio_engine.track_set_pan(track_id, pan_slider.getValue());
+    };
 
     addAndMakeVisible(track_number_label);
     addAndMakeVisible(track_name_label);
@@ -136,8 +98,8 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
     addAndMakeVisible(volume_slider);
     addAndMakeVisible(pan_slider);
 
-    // addAndMakeVisible(left_level_meter_component);
-    // addAndMakeVisible(right_level_meter_component);
+    update_input_channel_dropdown();
+    update_output_channel_dropdown();
 }
 
 TrackHeaderComponent::~TrackHeaderComponent() {
@@ -236,9 +198,9 @@ void TrackHeaderComponent::resized() {
     msri_box.removeFromLeft(spacing);
     monitoring_button.setBounds(msri_box.removeFromLeft(item_width));
 
-    volume_slider.setBounds(volume_pan_box.removeFromLeft(2.5*item_width + 1*spacing));
+    volume_slider.setBounds(volume_pan_box.removeFromLeft(3*item_width + 2*spacing));
     volume_pan_box.removeFromLeft(spacing);
-    pan_slider.setBounds(volume_pan_box.removeFromLeft(1.5*item_width+spacing));
+    pan_slider.setBounds(volume_pan_box.removeFromLeft(1*item_width));
 }
 
 void TrackHeaderComponent::changeListenerCallback(juce::ChangeBroadcaster*) {
@@ -254,14 +216,23 @@ void TrackHeaderComponent::update_input_channel_dropdown() {
     }
 
     const auto& input_channels = audio_engine.get_channel_manager().get_input_channel_strings();
+    if (input_channels.empty()) { return; }
 
     input_channel_dropdown.setEnabled(true);
 
-    input_channel_dropdown.addItemList(input_channels.at(ChannelLayout::Mono), 1);
+    if (!input_channels.at(ChannelLayout::Mono).isEmpty()) {
+        input_channel_dropdown.addItemList(input_channels.at(ChannelLayout::Mono), 1);
+    }
     input_channel_dropdown.addSeparator();
-    input_channel_dropdown.addItemList(input_channels.at(ChannelLayout::Stereo), input_channel_dropdown.getNumItems()+1);
+    if (!input_channels.at(ChannelLayout::Mono).isEmpty()) {
+        input_channel_dropdown.addItemList(input_channels.at(ChannelLayout::Stereo), input_channel_dropdown.getNumItems()+1);
+    }
 
-    input_channel_dropdown.setSelectedId(1);
+    if (input_channel_dropdown.getNumItems() == 0) {
+        input_channel_dropdown.setEnabled(false);
+    } else {
+        input_channel_dropdown.setSelectedId(1);
+    }
 }
 
 void TrackHeaderComponent::update_output_channel_dropdown() {
@@ -272,14 +243,23 @@ void TrackHeaderComponent::update_output_channel_dropdown() {
     }
 
     const auto& output_channels = audio_engine.get_channel_manager().get_output_channel_strings();
+    if (output_channels.empty()) { return; }
 
     output_channel_dropdown.setEnabled(true);
 
-    output_channel_dropdown.addItemList(output_channels.at(ChannelLayout::Mono), 1);
+    if (!output_channels.at(ChannelLayout::Mono).isEmpty()) {
+        output_channel_dropdown.addItemList(output_channels.at(ChannelLayout::Mono), 1);
+    }
     output_channel_dropdown.addSeparator();
-    output_channel_dropdown.addItemList(output_channels.at(ChannelLayout::Stereo), output_channel_dropdown.getNumItems()+1);
+    if (!output_channels.at(ChannelLayout::Stereo).isEmpty()) {
+        output_channel_dropdown.addItemList(output_channels.at(ChannelLayout::Stereo), output_channel_dropdown.getNumItems()+1);
+    }
 
-    output_channel_dropdown.setSelectedId(1);
+    if (output_channel_dropdown.getNumItems() == 0) {
+        output_channel_dropdown.setEnabled(false);
+    } else {
+        output_channel_dropdown.setSelectedId(1);
+    }
 }
 
 void TrackHeaderComponent::update_input_channel() {
@@ -301,11 +281,6 @@ void TrackHeaderComponent::update_input_channel() {
     controls.input_src_channel = pair.first;
     controls.input_layout = pair.second;
     controls.input_buffer_idx = audio_engine.get_channel_manager().input_channel_to_buffer_idx(controls.input_src_channel);
-
-    DBG("update input channel");
-    DBG(controls.input_src_channel.load());
-    DBG(static_cast<int>(controls.input_layout.load()));
-    DBG(controls.input_buffer_idx.load());
 }
 
 void TrackHeaderComponent::update_output_channel() {
@@ -320,6 +295,9 @@ void TrackHeaderComponent::update_output_channel() {
     }
 
     const auto pair = audio_engine.get_channel_manager().get_output_channel_from_string(output_channel_dropdown.getText());
+    if (pair.first < 0) {
+        return;
+    }
 
     controls.output_dest_channel = pair.first;
     controls.output_layout = pair.second;

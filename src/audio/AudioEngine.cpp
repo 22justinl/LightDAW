@@ -1,6 +1,7 @@
 #include "audio/AudioEngine.h"
 
 #include <juce_audio_formats/juce_audio_formats.h>
+
 #include <string>
 
 constexpr char default_device[] = "MacBook Pro Microphone";
@@ -68,8 +69,25 @@ void AudioEngine::set_input_view_ptr(const float* const* input_channel_data) {
 float AudioEngine::track_get_gain(TrackId track_id) { return tracks[track_id]->get_gain(); }
 void AudioEngine::track_set_gain(TrackId track_id, float new_gain_db) { tracks[track_id]->set_gain(new_gain_db); }
 
+float AudioEngine::track_get_pan(TrackId track_id) { return tracks[track_id]->get_pan(); }
+void AudioEngine::track_set_pan(TrackId track_id, float new_pan) { tracks[track_id]->set_pan(new_pan); }
+
 bool AudioEngine::track_is_muted(TrackId track_id) { return tracks[track_id]->is_muted(); }
-void AudioEngine::track_set_mute(TrackId track_id, bool new_muted) { tracks[track_id]->set_muted(new_muted); }
+void AudioEngine::track_set_muted(TrackId track_id, bool new_muted) { tracks[track_id]->set_muted(new_muted); }
+
+bool AudioEngine::track_is_soloed(TrackId track_id) { return tracks[track_id]->is_soloed(); }
+void AudioEngine::track_set_soloed(TrackId track_id, bool new_soloed) {
+    if (tracks[track_id]->is_soloed() == new_soloed) { return; }
+    tracks[track_id]->set_soloed(new_soloed);
+    if (new_soloed) {
+        track_mixer_source.increment_solo_count();
+    } else {
+        track_mixer_source.decrement_solo_count();
+    }
+}
+
+bool AudioEngine::track_is_recording(TrackId track_id) { return tracks[track_id]->is_recording(); }
+void AudioEngine::track_set_recording(TrackId track_id, bool new_recording) { tracks[track_id]->set_recording(new_recording); }
 
 bool AudioEngine::track_is_monitoring(TrackId track_id) { return tracks[track_id]->is_monitoring(); }
 void AudioEngine::track_set_monitoring(TrackId track_id, bool new_monitoring) { tracks[track_id]->set_monitoring(new_monitoring); }

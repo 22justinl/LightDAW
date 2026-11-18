@@ -54,8 +54,17 @@ public:
     float get_gain() const;
     void set_gain(float new_gain_db);
 
+    float get_pan() const;
+    void set_pan(float new_pan);
+
     bool is_muted() const;
     void set_muted(bool new_muted);
+
+    bool is_soloed() const;
+    void set_soloed(bool new_soloed);
+
+    bool is_recording() const;
+    void set_recording(bool new_recording);
 
     bool is_monitoring() const;
     void set_monitoring(bool new_monitoring);

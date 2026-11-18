@@ -1,6 +1,7 @@
 #include "audio/TrackMixerSource.h"
 #include "audio/TrackMixerControls.h"
-#include "juce_core/juce_core.h"
+
+#include <juce_core/juce_core.h>
 
 TrackMixerSource::TrackMixerSource(Transport& transport_, ChannelManager& channel_manager_, std::unordered_map<TrackId, std::unique_ptr<Track>>& tracks_): transport(transport_), channel_manager(channel_manager_), tracks(tracks_) {}
 
@@ -49,15 +50,35 @@ void TrackMixerSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
 
     for (auto& p : tracks) {
         Track& track = *p.second;
+        temp_buffer_info.clearActiveBufferRegion();
         route_track_audio_to_output(track.get_audio_source(), buffer, n);
     }
 }
 
+void TrackMixerSource::increment_solo_count() {
+    ++solo_count;
+}
+
+void TrackMixerSource::decrement_solo_count() {
+    --solo_count;
+}
+
 void TrackMixerSource::route_track_audio_to_output(TrackAudioSource& source, juce::AudioBuffer<float>* buffer, int n) {
     source.getNextAudioBlock(temp_buffer_info);
-    OutputDestination output_dest = source.get_output_dest();
-    ChannelLayout layout = source.get_output_layout();
-    ChannelId channel = source.get_output_channel();
+
+    const TrackMixerControls& mixer_controls = source.get_mixer_controls();
+
+    // TODO: handle recording here
+
+    if (mixer_controls.is_muted() || (solo_count.load() > 0 && !mixer_controls.is_soloed())) {
+        return;
+    }
+
+    source.process_audio_block(temp_buffer_info);
+
+    OutputDestination output_dest = mixer_controls.get_output_dest();
+    ChannelLayout layout = mixer_controls.get_output_layout();
+    ChannelId channel = mixer_controls.get_output_channel();
 
     if (output_dest == OutputDestination::Master) {
         channel = channel_manager.get_default_output_channel(ChannelLayout::Stereo); // TODO: change to make master output editable

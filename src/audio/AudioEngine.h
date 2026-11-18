@@ -30,11 +30,21 @@ public:
     float track_get_gain(TrackId track_id);
     void track_set_gain(TrackId track_id, float new_gain_db);
 
+    float track_get_pan(TrackId track_id);
+    void track_set_pan(TrackId track_id, float new_pan);
+
     bool track_is_muted(TrackId track_id);
-    void track_set_mute(TrackId track_id, bool new_muted);
+    void track_set_muted(TrackId track_id, bool new_muted);
+
+    bool track_is_soloed(TrackId track_id);
+    void track_set_soloed(TrackId track_id, bool new_soloed);
+
+    bool track_is_recording(TrackId track_id);
+    void track_set_recording(TrackId track_id, bool new_recording);
 
     bool track_is_monitoring(TrackId track_id);
     void track_set_monitoring(TrackId track_id, bool new_monitoring);
+
 
     void track_import_file(TrackId track_id, const juce::File& file, SamplePosition position);
 

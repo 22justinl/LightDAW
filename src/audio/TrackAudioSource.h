@@ -21,14 +21,18 @@ public:
     void releaseResources() override;
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
 
-    OutputDestination get_output_dest() const;
-    ChannelId get_output_channel() const;
-    ChannelLayout get_output_layout() const;
+    const TrackMixerControls& get_mixer_controls() const;
+
+    void process_audio_block(const juce::AudioSourceChannelInfo& buffer);
 private:
+
     Transport& transport;
     std::vector<Clip>& clips;
     AudioInputView& input_view;
     TrackMixerControls& mixer_controls;
+
+    juce::SmoothedValue<float> smoothed_pan_l;
+    juce::SmoothedValue<float> smoothed_pan_r;
 
     size_t current_clip = 0;
 };

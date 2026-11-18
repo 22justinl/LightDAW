@@ -22,20 +22,22 @@ target_sources(LightDAW
         src/audio/AudioEngine.cpp
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
+        src/audio/ChannelManager.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
+        src/audio/TrackMixerControls.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/Transport.cpp
-        src/audio/ChannelManager.cpp
 
         src/gui/AudioSettingsComponent.cpp
+        src/gui/ClipComponent.cpp
+        src/gui/FileImportComponent.cpp
+        src/gui/LevelMeterComponent.cpp
+        src/gui/TimelineComponent.cpp
         src/gui/TrackHeaderComponent.cpp
         src/gui/TrackListComponent.cpp
-        src/gui/FileImportComponent.cpp
-        src/gui/TimelineComponent.cpp
-        src/gui/ClipComponent.cpp
         src/gui/TransportComponent.cpp
 )
 target_link_libraries(LightDAW
@@ -71,13 +73,14 @@ target_sources(unit_tests
         src/audio/AudioEngine.cpp
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
+        src/audio/ChannelManager.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
+        src/audio/TrackMixerControls.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/Transport.cpp
-        src/audio/ChannelManager.cpp
 )
 target_include_directories(unit_tests
     PRIVATE
@@ -116,13 +119,14 @@ target_sources(streaming_test
         src/audio/AudioEngine.cpp
         src/audio/AudioFileStream.cpp
         src/audio/AudioRingBuffer.cpp
+        src/audio/ChannelManager.cpp
         src/audio/DAWIOCallback.cpp
-        src/audio/TrackMixerSource.cpp
         src/audio/StreamManager.cpp
         src/audio/Track.cpp
         src/audio/TrackAudioSource.cpp
+        src/audio/TrackMixerControls.cpp
+        src/audio/TrackMixerSource.cpp
         src/audio/Transport.cpp
-        src/audio/ChannelManager.cpp
 )
 target_link_libraries(streaming_test
     PRIVATE
