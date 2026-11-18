@@ -31,6 +31,8 @@ private:
     AudioInputView& input_view;
     TrackMixerControls& mixer_controls;
 
+    juce::SmoothedValue<float> smoothed_gain;
+
     juce::SmoothedValue<float> smoothed_pan_l;
     juce::SmoothedValue<float> smoothed_pan_r;
 

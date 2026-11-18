@@ -3,6 +3,7 @@
 #include "Types.h"
 
 #include <juce_core/juce_core.h>
+#include <juce_audio_basics/juce_audio_basics.h>
 
 #include <atomic>
 
@@ -21,8 +22,9 @@ enum class ChannelLayout {
 };
 
 struct TrackMixerControls {
-    float get_gain() const;
-    void set_gain(float new_gain_db);
+    float get_volume() const;
+    float get_gain() const; // returns converted volume (db to gain);
+    void set_volume(float new_volume);
 
     float get_pan() const;
     void set_pan(float new_pan);
@@ -43,14 +45,14 @@ struct TrackMixerControls {
     ChannelId get_output_channel() const;
     ChannelLayout get_output_layout() const;
 
-    std::atomic<float> gain_db = 0;
+    std::atomic<float> volume = 0;
+    std::atomic<float> gain = juce::Decibels::decibelsToGain(0.f, -60.f);
     std::atomic<float> pan = 0;
 
     std::atomic_bool muted = false;
     std::atomic_bool soloed = false;
     std::atomic_bool recording = false;
     std::atomic_bool monitoring = false;
-
 
     // Input Info
     std::atomic<InputSource> input_src = InputSource::External;

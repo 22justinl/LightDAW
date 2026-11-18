@@ -2,8 +2,9 @@
 
 #include <algorithm>
 
-float TrackMixerControls::get_gain() const { return gain_db.load(); }
-void TrackMixerControls::set_gain(float new_gain_db) { gain_db.store(new_gain_db); }
+float TrackMixerControls::get_volume() const { return volume.load(); }
+float TrackMixerControls::get_gain() const { return gain.load(); }
+void TrackMixerControls::set_volume(float new_volume) { volume.store(new_volume); gain.store(juce::Decibels::decibelsToGain(new_volume, -60.f)); }
 
 float TrackMixerControls::get_pan() const { return pan.load(); }
 void TrackMixerControls::set_pan(float new_pan) { pan.store(std::clamp(new_pan, -1.f, 1.f)); }

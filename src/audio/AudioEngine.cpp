@@ -66,8 +66,8 @@ void AudioEngine::set_input_view_ptr(const float* const* input_channel_data) {
 
 // Track interface
 
-float AudioEngine::track_get_gain(TrackId track_id) { return tracks[track_id]->get_gain(); }
-void AudioEngine::track_set_gain(TrackId track_id, float new_gain_db) { tracks[track_id]->set_gain(new_gain_db); }
+float AudioEngine::track_get_volume(TrackId track_id) { return tracks[track_id]->get_volume(); }
+void AudioEngine::track_set_volume(TrackId track_id, float new_gain_db) { tracks[track_id]->set_volume(new_gain_db); }
 
 float AudioEngine::track_get_pan(TrackId track_id) { return tracks[track_id]->get_pan(); }
 void AudioEngine::track_set_pan(TrackId track_id, float new_pan) { tracks[track_id]->set_pan(new_pan); }

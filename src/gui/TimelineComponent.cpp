@@ -9,7 +9,7 @@ TimelineLaneComponent::TimelineLaneComponent(Track& track_, int& track_height_, 
     track.addChangeListener(this);
 }
 void TimelineLaneComponent::paint(juce::Graphics& g) {
-    g.fillAll(juce::Colours::red);
+    g.fillAll(juce::Colours::darkgrey);
 }
 void TimelineLaneComponent::resized() {
     update_all_clip_bounds();

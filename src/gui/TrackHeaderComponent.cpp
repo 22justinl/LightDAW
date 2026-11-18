@@ -12,91 +12,98 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
         track_id(track_id_) {
     audio_engine.get_channel_manager().addChangeListener(this);
 
+    track_number_label.setLookAndFeel(&look_and_feel);
     track_number_label.setText(juce::String(track_id), juce::dontSendNotification);
+    addAndMakeVisible(track_number_label);
+
+    track_name_label.setLookAndFeel(&look_and_feel);
     track_name_label.setText(audio_engine.get_tracks()[track_id]->get_name(), juce::dontSendNotification);
     track_name_label.setJustificationType(juce::Justification::topLeft);
+    addAndMakeVisible(track_name_label);
 
-    mute_button.setToggleable(true);
-    mute_button.setToggleState(true, juce::dontSendNotification);
-    mute_button.setClickingTogglesState(true);
-    mute_button.onClick = [&](){
-        audio_engine.track_set_muted(track_id, !audio_engine.track_is_muted(track_id));
-    };
-    solo_button.setToggleable(true);
-    solo_button.setToggleState(true, juce::dontSendNotification);
-    solo_button.setClickingTogglesState(true);
-    solo_button.onClick = [&](){
-        audio_engine.track_set_soloed(track_id, !audio_engine.track_is_soloed(track_id));
-    };
-    recording_button.setToggleable(true);
-    recording_button.setToggleState(true, juce::dontSendNotification);
-    recording_button.setClickingTogglesState(true);
-    recording_button.onClick = [&](){
-        audio_engine.track_set_recording(track_id, !audio_engine.track_is_recording(track_id));
-    };
-    monitoring_button.setToggleable(true);
-    monitoring_button.setToggleState(true, juce::dontSendNotification);
-    monitoring_button.setClickingTogglesState(true);
-    monitoring_button.onClick = [&](){
-        audio_engine.track_set_monitoring(track_id, !audio_engine.track_is_monitoring(track_id));
-    };
-
-    volume_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
-    volume_slider.setScrollWheelEnabled(false);
-    volume_slider.setNumDecimalPlacesToDisplay(2);
-
-    pan_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
-    pan_slider.setScrollWheelEnabled(false);
-    pan_slider.setNumDecimalPlacesToDisplay(2);
-
-
-    track_number_label.setLookAndFeel(&look_and_feel);
-    track_name_label.setLookAndFeel(&look_and_feel);
 
     input_src_dropdown.setLookAndFeel(&look_and_feel);
     input_src_dropdown.addItem("Ext. In", static_cast<int>(InputSource::External));
     input_src_dropdown.setSelectedId(static_cast<int>(InputSource::External), juce::dontSendNotification);
     input_src_dropdown.onChange = [&]() { update_input_channel_dropdown(); };
+    addAndMakeVisible(input_src_dropdown);
 
     input_channel_dropdown.setLookAndFeel(&look_and_feel);
     input_channel_dropdown.onChange = [&]() { update_input_channel(); };
+    addAndMakeVisible(input_channel_dropdown);
 
     output_dst_dropdown.setLookAndFeel(&look_and_feel);
     output_dst_dropdown.addItem("Master", static_cast<int>(OutputDestination::Master));
     output_dst_dropdown.addItem("Ext. Out", static_cast<int>(OutputDestination::External));
     output_dst_dropdown.setSelectedId(static_cast<int>(OutputDestination::Master), juce::dontSendNotification);
     output_dst_dropdown.onChange = [&]() { update_output_channel_dropdown(); };
+    addAndMakeVisible(output_dst_dropdown);
 
     output_channel_dropdown.setLookAndFeel(&look_and_feel);
     output_channel_dropdown.onChange = [&]() { update_output_channel(); };
-
-    mute_button.setLookAndFeel(&look_and_feel);
-    solo_button.setLookAndFeel(&look_and_feel);
-    recording_button.setLookAndFeel(&look_and_feel);
-    monitoring_button.setLookAndFeel(&look_and_feel);
-
-    volume_slider.setLookAndFeel(&look_and_feel);
-    pan_slider.setLookAndFeel(&look_and_feel);
-    pan_slider.setRange(-1, 1, 0);
-    pan_slider.onValueChange = [&]() {
-        audio_engine.track_set_pan(track_id, pan_slider.getValue());
-    };
-
-    addAndMakeVisible(track_number_label);
-    addAndMakeVisible(track_name_label);
-
-    addAndMakeVisible(input_src_dropdown);
-    addAndMakeVisible(input_channel_dropdown);
-    addAndMakeVisible(output_dst_dropdown);
     addAndMakeVisible(output_channel_dropdown);
 
+
+    mute_button.setLookAndFeel(&look_and_feel);
+    mute_button.setToggleable(true);
+    mute_button.setToggleState(true, juce::dontSendNotification);
+    mute_button.setClickingTogglesState(true);
+    mute_button.onClick = [&](){
+        audio_engine.track_set_muted(track_id, !audio_engine.track_is_muted(track_id));
+    };
     addAndMakeVisible(mute_button);
+
+    solo_button.setLookAndFeel(&look_and_feel);
+    solo_button.setToggleable(true);
+    solo_button.setToggleState(true, juce::dontSendNotification);
+    solo_button.setClickingTogglesState(true);
+    solo_button.onClick = [&](){
+        audio_engine.track_set_soloed(track_id, !audio_engine.track_is_soloed(track_id));
+    };
     addAndMakeVisible(solo_button);
+    recording_button.setLookAndFeel(&look_and_feel);
+    recording_button.setToggleable(true);
+    recording_button.setToggleState(true, juce::dontSendNotification);
+    recording_button.setClickingTogglesState(true);
+    recording_button.onClick = [&](){
+        audio_engine.track_set_recording(track_id, !audio_engine.track_is_recording(track_id));
+    };
     addAndMakeVisible(recording_button);
+    monitoring_button.setLookAndFeel(&look_and_feel);
+    monitoring_button.setToggleable(true);
+    monitoring_button.setToggleState(true, juce::dontSendNotification);
+    monitoring_button.setClickingTogglesState(true);
+    monitoring_button.onClick = [&](){
+        audio_engine.track_set_monitoring(track_id, !audio_engine.track_is_monitoring(track_id));
+    };
     addAndMakeVisible(monitoring_button);
 
+
+    volume_slider.setLookAndFeel(&look_and_feel);
+    volume_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    volume_slider.setScrollWheelEnabled(false);
+    volume_slider.setNumDecimalPlacesToDisplay(1);
+    volume_slider.setTextBoxIsEditable(false);
+    volume_slider.setDoubleClickReturnValue(true, 0);
+    volume_slider.setRange(-60, 6, 0.1);
+    volume_slider.setSkewFactor(10, false);
+    volume_slider.setSkewFactorFromMidPoint(-24);
+    volume_slider.textFromValueFunction = [](double value) { return juce::Decibels::toString(value, 1, -60.0); };
+    volume_slider.onValueChange = [&]() { audio_engine.track_set_volume(track_id, static_cast<float>(volume_slider.getValue())); };
+    volume_slider.updateText();
     addAndMakeVisible(volume_slider);
+
+    pan_slider.setLookAndFeel(&look_and_feel);
+    pan_slider.setSliderStyle(juce::Slider::SliderStyle::LinearBar);
+    pan_slider.setScrollWheelEnabled(false);
+    pan_slider.setNumDecimalPlacesToDisplay(0);
+    pan_slider.setTextBoxIsEditable(false);
+    pan_slider.setRange(-1, 1, 0.02);
+    pan_slider.textFromValueFunction = [](double value) { int int_val = static_cast<int>(50*value); return int_val == 0 ? "C" : (int_val > 0 ? std::to_string(int_val)+"R" : std::to_string(int_val)+"L"); };
+    pan_slider.onValueChange = [&]() { audio_engine.track_set_pan(track_id, static_cast<float>(pan_slider.getValue())); };
+    pan_slider.updateText();
     addAndMakeVisible(pan_slider);
+
 
     update_input_channel_dropdown();
     update_output_channel_dropdown();
@@ -161,7 +168,7 @@ void TrackHeaderComponent::resized() {
     area.removeFromBottom(spacing);
 
     area.removeFromRight(spacing);
-    auto volume_box = area.removeFromRight(5);
+    /*auto volume_box = */area.removeFromRight(5);
     area.removeFromRight(spacing);
     auto mixer_control_box = area.removeFromRight(4*item_width + 3*spacing);
     area.removeFromRight(spacing);
@@ -198,9 +205,9 @@ void TrackHeaderComponent::resized() {
     msri_box.removeFromLeft(spacing);
     monitoring_button.setBounds(msri_box.removeFromLeft(item_width));
 
-    volume_slider.setBounds(volume_pan_box.removeFromLeft(3*item_width + 2*spacing));
+    volume_slider.setBounds(volume_pan_box.removeFromLeft(2*item_width + spacing));
     volume_pan_box.removeFromLeft(spacing);
-    pan_slider.setBounds(volume_pan_box.removeFromLeft(1*item_width));
+    pan_slider.setBounds(volume_pan_box.removeFromLeft(2*item_width));
 }
 
 void TrackHeaderComponent::changeListenerCallback(juce::ChangeBroadcaster*) {

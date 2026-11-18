@@ -40,6 +40,7 @@ void TrackAudioSource::setLooping(bool shouldLoop) {
 void TrackAudioSource::prepareToPlay(int samplePerBlockExpected, double sampleRate) {
     juce::ignoreUnused(samplePerBlockExpected, sampleRate);
     current_clip = 0;
+    smoothed_gain.reset(sampleRate, 2e-2);
     smoothed_pan_l.reset(sampleRate, 2e-2);
     smoothed_pan_r.reset(sampleRate, 2e-2);
 }
@@ -51,6 +52,8 @@ void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
     float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
 
     // update smooth parameters
+    smoothed_gain.setTargetValue(mixer_controls.get_gain());
+
     float pan = mixer_controls.get_pan();
     smoothed_pan_l.setTargetValue(std::max(0.f, 1-pan));
     smoothed_pan_r.setTargetValue(std::max(0.f, 1+pan));
@@ -93,8 +96,9 @@ void TrackAudioSource::process_audio_block(const juce::AudioSourceChannelInfo& b
     float* buffers[2] = {bufferToFill.buffer->getWritePointer(0, 0), bufferToFill.buffer->getWritePointer(1, 0)};
 
     for (int i = 0; i < n; ++i) {
-        buffers[0][i] *= smoothed_pan_l.getNextValue();
-        buffers[1][i] *= smoothed_pan_r.getNextValue();
+        float gain = smoothed_gain.getNextValue();
+        buffers[0][i] *= gain*smoothed_pan_l.getNextValue();
+        buffers[1][i] *= gain*smoothed_pan_r.getNextValue();
     }
 }
 

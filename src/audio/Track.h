@@ -51,8 +51,8 @@ public:
     const juce::String& get_name() const;
     void set_name(const juce::String& new_name);
 
-    float get_gain() const;
-    void set_gain(float new_gain_db);
+    float get_volume() const;
+    void set_volume(float new_volume);
 
     float get_pan() const;
     void set_pan(float new_pan);

@@ -23,8 +23,8 @@ Track::~Track() {
 const juce::String& Track::get_name() const { return name; }
 void Track::set_name(const juce::String& new_name) { name = new_name; }
 
-float Track::get_gain() const { return mixer_controls.get_gain(); }
-void Track::set_gain(float new_gain_db) { mixer_controls.set_gain(new_gain_db); }
+float Track::get_volume() const { return mixer_controls.get_volume(); }
+void Track::set_volume(float new_volume) { mixer_controls.set_volume(new_volume); }
 
 float Track::get_pan() const { return mixer_controls.get_pan(); }
 void Track::set_pan(float new_gain_db) { mixer_controls.set_pan(new_gain_db); }

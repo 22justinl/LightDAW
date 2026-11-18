@@ -27,8 +27,8 @@ public:
     void set_input_view_ptr(const float* const* input_channel_data);
 
     // Track interface
-    float track_get_gain(TrackId track_id);
-    void track_set_gain(TrackId track_id, float new_gain_db);
+    float track_get_volume(TrackId track_id);
+    void track_set_volume(TrackId track_id, float new_volume);
 
     float track_get_pan(TrackId track_id);
     void track_set_pan(TrackId track_id, float new_pan);
