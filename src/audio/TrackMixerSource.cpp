@@ -88,11 +88,15 @@ void TrackMixerSource::route_track_audio_to_output(TrackAudioSource& source, juc
     if (!channel_manager.is_output_channel_active(channel, layout)) {
         return;
     }
+
     int idx = static_cast<int>(channel_manager.output_channel_to_buffer_idx(channel));
     if (idx < 0) { return; }
-    buffer->addFrom(idx, 0, temp_buffer, 0, 0, n);
 
-    if (layout == ChannelLayout::Stereo) {
+    if (layout == ChannelLayout::Mono) {
+        buffer->addFrom(idx, 0, temp_buffer, 0, 0, n, 0.5);
+        buffer->addFrom(idx, 0, temp_buffer, 1, 0, n, 0.5);
+    } else {
+        buffer->addFrom(idx, 0, temp_buffer, 0, 0, n);
         idx = static_cast<int>(channel_manager.output_channel_to_buffer_idx(channel+1));
         if (idx < 0) { return; }
         buffer->addFrom(idx, 0, temp_buffer, 1, 0, n);

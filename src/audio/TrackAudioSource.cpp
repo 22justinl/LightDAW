@@ -58,11 +58,11 @@ void TrackAudioSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
     // monitoring
     if (mixer_controls.monitoring.load() && input_view.input_channel_data && mixer_controls.input_buffer_idx >= 0) {
         if (mixer_controls.input_layout == ChannelLayout::Mono) {
-            juce::FloatVectorOperations::multiply(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], MONO_TO_STEREO_PAN_FACTOR, n);
-            juce::FloatVectorOperations::multiply(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx], MONO_TO_STEREO_PAN_FACTOR, n);
+            bufferToFill.buffer->addFrom(0, 0, input_view.input_channel_data[mixer_controls.input_buffer_idx], n, MONO_TO_STEREO_PAN_FACTOR);
+            bufferToFill.buffer->addFrom(1, 0, input_view.input_channel_data[mixer_controls.input_buffer_idx], n, MONO_TO_STEREO_PAN_FACTOR);
         } else {
-            juce::FloatVectorOperations::copy(buffers[0], input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
-            juce::FloatVectorOperations::copy(buffers[1], input_view.input_channel_data[mixer_controls.input_buffer_idx+1], n);
+            bufferToFill.buffer->addFrom(0, 0, input_view.input_channel_data[mixer_controls.input_buffer_idx], n);
+            bufferToFill.buffer->addFrom(1, 0, input_view.input_channel_data[mixer_controls.input_buffer_idx+1], n);
         }
     }
 
