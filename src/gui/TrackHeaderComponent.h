@@ -12,6 +12,35 @@ constexpr int border_width = 2;
 constexpr int item_width = 34;
 constexpr int item_height = 24;
 
+struct TrackHeaderLayout {
+    juce::Rectangle<int> number;
+
+    juce::Rectangle<int> number_name_border;
+
+    juce::Rectangle<int> name;
+
+    juce::Rectangle<int> name_channel_border;
+
+    // channel selection dropdowns
+    juce::Rectangle<int> input_src;
+    juce::Rectangle<int> input_channel;
+    juce::Rectangle<int> output_dst;
+    juce::Rectangle<int> output_channel;
+
+    juce::Rectangle<int> channel_mixer_border;
+
+    // mixer controls
+    juce::Rectangle<int> mute;
+    juce::Rectangle<int> solo;
+    juce::Rectangle<int> recording;
+    juce::Rectangle<int> monitoring;
+
+    juce::Rectangle<int> volume;
+    juce::Rectangle<int> pan;
+
+    juce::Rectangle<int> volume_meter;
+};
+
 class TrackHeaderComponent: public juce::Component, public juce::ChangeListener {
 public:
     TrackHeaderComponent(AudioEngine& audio_engine_, TrackId track_id_);
@@ -23,6 +52,8 @@ public:
 
     void set_on_delete(std::function<void()> fn);
 private:
+    TrackHeaderLayout calculate_layout() const;
+
     void update_input_channel_dropdown();
     void update_output_channel_dropdown();
     void update_input_channel();
@@ -38,7 +69,6 @@ private:
 
     juce::Label track_number_label;
     juce::Label track_name_label;
-    juce::TextEditor name_editor;
 
     juce::ComboBox input_src_dropdown;
     juce::ComboBox input_channel_dropdown;

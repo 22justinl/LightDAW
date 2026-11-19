@@ -65,6 +65,8 @@ void AudioEngine::set_input_view_ptr(const float* const* input_channel_data) {
 }
 
 // Track interface
+const juce::String& AudioEngine::track_get_name(TrackId track_id) { return tracks[track_id]->get_name(); }
+void AudioEngine::track_set_name(TrackId track_id, const juce::String& new_name) { tracks[track_id]->set_name(new_name); }
 
 float AudioEngine::track_get_volume(TrackId track_id) { return tracks[track_id]->get_volume(); }
 void AudioEngine::track_set_volume(TrackId track_id, float new_gain_db) { tracks[track_id]->set_volume(new_gain_db); }

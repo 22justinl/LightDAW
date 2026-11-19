@@ -19,6 +19,8 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
     track_name_label.setLookAndFeel(&look_and_feel);
     track_name_label.setText(audio_engine.get_tracks()[track_id]->get_name(), juce::dontSendNotification);
     track_name_label.setJustificationType(juce::Justification::topLeft);
+    track_name_label.setEditable(false, true, false);
+    track_name_label.onEditorHide = [&]() { audio_engine.track_set_name(track_id, track_name_label.getText(true)); };
     addAndMakeVisible(track_name_label);
 
 
@@ -60,6 +62,7 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
     solo_button.onClick = [&](){
         audio_engine.track_set_soloed(track_id, !audio_engine.track_is_soloed(track_id));
     };
+
     addAndMakeVisible(solo_button);
     recording_button.setLookAndFeel(&look_and_feel);
     recording_button.setToggleable(true);
@@ -68,6 +71,7 @@ TrackHeaderComponent::TrackHeaderComponent(AudioEngine& audio_engine_, TrackId t
     recording_button.onClick = [&](){
         audio_engine.track_set_recording(track_id, !audio_engine.track_is_recording(track_id));
     };
+
     addAndMakeVisible(recording_button);
     monitoring_button.setLookAndFeel(&look_and_feel);
     monitoring_button.setToggleable(true);
@@ -130,89 +134,106 @@ TrackHeaderComponent::~TrackHeaderComponent() {
 }
 
 void TrackHeaderComponent::paint(juce::Graphics& g) {
+    TrackHeaderLayout layout = calculate_layout();
+
     g.fillAll(juce::Colours::grey);
-    auto area = getLocalBounds();
 
-    auto number_box = area.removeFromLeft(36);
+    g.setColour(juce::Colours::black);
+    g.fillRect(layout.number_name_border);
+    g.fillRect(layout.name_channel_border);
+    g.fillRect(layout.channel_mixer_border);
+
     g.setColour(juce::Colours::darkgrey);
-    g.fillRect(number_box);
-
-    g.setColour(juce::Colours::black);
-    g.fillRect(area.removeFromLeft(border_width));
-
-    area.removeFromRight(spacing);
-    area.removeFromRight(5);
-    area.removeFromRight(spacing);
-    area.removeFromRight(4*item_width + 3*spacing);
-    area.removeFromRight(spacing);
-
-    g.setColour(juce::Colours::black);
-    g.fillRect(area.removeFromRight(border_width));
-
-    area.removeFromRight(spacing);
-    area.removeFromRight(4*item_width + 3*spacing);
-    area.removeFromRight(spacing);
-
-    g.setColour(juce::Colours::black);
-    g.fillRect(area.removeFromRight(border_width));
+    g.fillRect(layout.number);
 }
 
 void TrackHeaderComponent::resized() {
-    auto area = getLocalBounds();
+    TrackHeaderLayout layout = calculate_layout();
 
-    auto number_box = area.removeFromLeft(36);
+    track_number_label.setBounds(layout.number);
+    track_name_label.setBounds(layout.name);
 
-    area.removeFromLeft(border_width);
-    area.removeFromLeft(spacing);
-    area.removeFromTop(spacing);
-    area.removeFromBottom(spacing);
+    input_src_dropdown.setBounds(layout.input_src);
+    input_channel_dropdown.setBounds(layout.input_channel);
+    output_dst_dropdown.setBounds(layout.output_dst);
+    output_channel_dropdown.setBounds(layout.output_channel);
 
-    area.removeFromRight(spacing);
-    /*auto volume_box = */area.removeFromRight(5);
-    area.removeFromRight(spacing);
-    auto mixer_control_box = area.removeFromRight(4*item_width + 3*spacing);
-    area.removeFromRight(spacing);
+    mute_button.setBounds(layout.mute);
+    solo_button.setBounds(layout.solo);
+    recording_button.setBounds(layout.recording);
+    monitoring_button.setBounds(layout.monitoring);
 
-    area.removeFromRight(border_width);
-
-    area.removeFromRight(spacing);
-    auto channel_selection_box = area.removeFromRight(4*item_width + 3*spacing);
-    area.removeFromRight(spacing);
-
-    area.removeFromRight(border_width);
-
-
-    auto msri_box = mixer_control_box.removeFromTop(item_height);
-    mixer_control_box.removeFromTop(spacing);
-    auto volume_pan_box = mixer_control_box.removeFromTop(item_height);
-
-    track_number_label.setBounds(number_box);
-    track_name_label.setBounds(area);
-
-    input_src_dropdown.setBounds(channel_selection_box.removeFromTop(item_height));
-    channel_selection_box.removeFromTop(spacing);
-    input_channel_dropdown.setBounds(channel_selection_box.removeFromTop(item_height));
-    channel_selection_box.removeFromTop(spacing);
-    output_dst_dropdown.setBounds(channel_selection_box.removeFromTop(item_height));
-    channel_selection_box.removeFromTop(spacing);
-    output_channel_dropdown.setBounds(channel_selection_box.removeFromTop(item_height));
-
-    mute_button.setBounds(msri_box.removeFromLeft(item_width));
-    msri_box.removeFromLeft(spacing);
-    solo_button.setBounds(msri_box.removeFromLeft(item_width));
-    msri_box.removeFromLeft(spacing);
-    recording_button.setBounds(msri_box.removeFromLeft(item_width));
-    msri_box.removeFromLeft(spacing);
-    monitoring_button.setBounds(msri_box.removeFromLeft(item_width));
-
-    volume_slider.setBounds(volume_pan_box.removeFromLeft(2*item_width + spacing));
-    volume_pan_box.removeFromLeft(spacing);
-    pan_slider.setBounds(volume_pan_box.removeFromLeft(2*item_width));
+    volume_slider.setBounds(layout.volume);
+    pan_slider.setBounds(layout.pan);
 }
 
 void TrackHeaderComponent::changeListenerCallback(juce::ChangeBroadcaster*) {
     update_input_channel_dropdown();
     update_output_channel_dropdown();
+}
+
+void TrackHeaderComponent::set_on_delete(std::function<void()> fn) {
+    on_delete = fn;
+}
+
+TrackHeaderLayout TrackHeaderComponent::calculate_layout() const {
+    TrackHeaderLayout layout;
+
+    auto area = getLocalBounds();
+
+    layout.number = area.removeFromLeft(36);
+
+    layout.number_name_border = area.removeFromLeft(border_width);
+
+    area.removeFromRight(spacing);
+    layout.volume_meter = area.removeFromRight(5);
+    layout.volume_meter.removeFromTop(spacing);
+    layout.volume_meter.removeFromBottom(spacing);
+    area.removeFromRight(spacing);
+    auto mixer_control = area.removeFromRight(4*item_width + 3*spacing);
+    mixer_control.removeFromTop(spacing);
+    mixer_control.removeFromBottom(spacing);
+    area.removeFromRight(spacing);
+
+    layout.channel_mixer_border = area.removeFromRight(border_width);
+
+    area.removeFromRight(spacing);
+    auto channel_selection = area.removeFromRight(4*item_width + 3*spacing);
+    channel_selection.removeFromTop(spacing);
+    channel_selection.removeFromBottom(spacing);
+    area.removeFromRight(spacing);
+
+    layout.name_channel_border = area.removeFromRight(border_width);
+
+    layout.name = area;
+    layout.name.removeFromTop(spacing);
+    layout.name.removeFromBottom(spacing);
+
+    layout.input_src = channel_selection.removeFromTop(item_height);
+    channel_selection.removeFromTop(spacing);
+    layout.input_channel = channel_selection.removeFromTop(item_height);
+    channel_selection.removeFromTop(spacing);
+    layout.output_dst = channel_selection.removeFromTop(item_height);
+    channel_selection.removeFromTop(spacing);
+    layout.output_channel = channel_selection.removeFromTop(item_height);
+
+    auto msri = mixer_control.removeFromTop(item_height);
+    mixer_control.removeFromTop(spacing);
+    auto volume_pan = mixer_control.removeFromTop(item_height);
+
+    layout.mute = msri.removeFromLeft(item_width);
+    msri.removeFromLeft(spacing);
+    layout.solo = msri.removeFromLeft(item_width);
+    msri.removeFromLeft(spacing);
+    layout.recording = msri.removeFromLeft(item_width);
+    msri.removeFromLeft(spacing);
+    layout.monitoring = msri.removeFromLeft(item_width);
+
+    layout.volume = volume_pan.removeFromLeft(2*item_width+spacing);
+    volume_pan.removeFromLeft(spacing);
+    layout.pan = volume_pan.removeFromLeft(2*item_width+spacing);
+
+    return layout;
 }
 
 void TrackHeaderComponent::update_input_channel_dropdown() {
@@ -309,8 +330,4 @@ void TrackHeaderComponent::update_output_channel() {
     controls.output_dest_channel = pair.first;
     controls.output_layout = pair.second;
     controls.output_buffer_idx = audio_engine.get_channel_manager().output_channel_to_buffer_idx(controls.output_dest_channel);
-}
-
-void TrackHeaderComponent::set_on_delete(std::function<void()> fn) {
-    on_delete = fn;
 }

@@ -27,6 +27,9 @@ public:
     void set_input_view_ptr(const float* const* input_channel_data);
 
     // Track interface
+    const juce::String& track_get_name(TrackId track_id);
+    void track_set_name(TrackId track_id, const juce::String& new_name);
+
     float track_get_volume(TrackId track_id);
     void track_set_volume(TrackId track_id, float new_volume);
 
